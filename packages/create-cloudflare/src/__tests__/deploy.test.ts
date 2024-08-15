@@ -1,6 +1,6 @@
 import { crash } from "@cloudflare/cli";
-import { processArgument } from "@cloudflare/cli/args";
 import { mockPackageManager, mockSpinner } from "helpers/__tests__/mocks";
+import { processArgument } from "helpers/args";
 import { runCommand } from "helpers/command";
 import { readFile } from "helpers/files";
 import { beforeEach, describe, expect, test, vi } from "vitest";
@@ -10,7 +10,7 @@ import { createTestContext } from "./helpers";
 
 vi.mock("helpers/command");
 vi.mock("../wrangler/accounts");
-vi.mock("@cloudflare/cli/args");
+vi.mock("helpers/args");
 vi.mock("@cloudflare/cli/interactive");
 vi.mock("which-pm-runs");
 vi.mock("@cloudflare/cli");

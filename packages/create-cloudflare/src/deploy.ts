@@ -1,6 +1,6 @@
 import { crash, startSection, updateStatus } from "@cloudflare/cli";
-import { processArgument } from "@cloudflare/cli/args";
 import { blue, brandColor, dim } from "@cloudflare/cli/colors";
+import { processArgument } from "helpers/args";
 import { C3_DEFAULTS, openInBrowser } from "helpers/cli";
 import { quoteShellArgs, runCommand } from "helpers/command";
 import { detectPackageManager } from "helpers/packageManagers";

@@ -16,6 +16,7 @@ import { version } from "../package.json";
 import { maybeOpenBrowser, offerToDeploy, runDeploy } from "./deploy";
 import { printSummary, printWelcomeMessage } from "./dialog";
 import { gitCommit, offerGit } from "./git";
+import { collectAsyncMetrics } from "./metrics";
 import { createProject } from "./pages";
 import {
 	addWranglerToGitIgnore,
@@ -47,7 +48,13 @@ export const main = async (argv: string[]) => {
 	) {
 		await runLatest();
 	} else {
-		await runCli(args);
+		await collectAsyncMetrics({
+			eventPrefix: "c3 session",
+			props: {
+				args,
+			},
+			promise: () => runCli(args),
+		});
 	}
 };
 
@@ -67,7 +74,6 @@ export const runLatest = async () => {
 // Entrypoint to c3
 export const runCli = async (args: Partial<C3Args>) => {
 	printBanner();
-
 	deriveCorrelatedArgs(args);
 
 	const ctx = await createContext(args);

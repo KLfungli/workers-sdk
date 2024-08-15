@@ -1,8 +1,11 @@
+import { inputPrompt } from "@cloudflare/cli/interactive";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { version } from "../../package.json";
 import { showHelp } from "../help";
+import { appendMetricsData, collectAsyncMetrics } from "../metrics";
 import { C3_DEFAULTS, WRANGLER_DEFAULTS } from "./cli";
+import type { Arg, PromptConfig } from "@cloudflare/cli/interactive";
 import type { C3Args } from "types";
 import type { Argv } from "yargs";
 
@@ -323,3 +326,36 @@ const validOption = (opt: string) => {
 };
 
 const camelize = (str: string) => str.replace(/-./g, (x) => x[1].toUpperCase());
+
+export const processArgument = async <Key extends keyof C3Args>(
+	args: Partial<C3Args>,
+	key: Key,
+	promptConfig: PromptConfig,
+) => {
+	return await collectAsyncMetrics({
+		eventPrefix: "c3 prompt",
+		props: {
+			args,
+			key,
+			promptConfig,
+		},
+		promise: async () => {
+			const value = args[key];
+			const result = await inputPrompt<Required<C3Args>[Key]>({
+				...promptConfig,
+				// Accept the default value if the arg is already set
+				acceptDefault: promptConfig.acceptDefault ?? value !== undefined,
+				defaultValue: value ?? promptConfig.defaultValue,
+			});
+
+			// Update value in args before returning the result
+			args[key] = result;
+
+			// Set properties for prompt completed event
+			appendMetricsData("answer", result);
+			appendMetricsData("isDefaultValue", result === C3_DEFAULTS[key]);
+
+			return result;
+		},
+	});
+};

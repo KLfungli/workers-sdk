@@ -3,11 +3,11 @@ import { cp, mkdtemp, rename } from "fs/promises";
 import { tmpdir } from "os";
 import { basename, dirname, join, resolve } from "path";
 import { crash, shapes, updateStatus, warn } from "@cloudflare/cli";
-import { processArgument } from "@cloudflare/cli/args";
 import { blue, brandColor, dim } from "@cloudflare/cli/colors";
 import { spinner } from "@cloudflare/cli/interactive";
 import deepmerge from "deepmerge";
 import degit from "degit";
+import { processArgument } from "helpers/args";
 import { C3_DEFAULTS } from "helpers/cli";
 import {
 	appendFile,
@@ -227,25 +227,25 @@ export const createContext = async (
 	// Allows the users to go back to the previous step
 	// By moving the cursor up to a certain line and clearing the screen
 	const goBack = async (from: "type" | "framework" | "lang") => {
-		const newArgs = { ...args };
+		const prevArgs = { ...args };
 		let linesPrinted = 0;
 
 		switch (from) {
 			case "type":
 				linesPrinted = 9;
-				newArgs.category = undefined;
+				args.category = undefined;
 				break;
 			case "framework":
 				linesPrinted = 9;
-				newArgs.category = undefined;
+				args.category = undefined;
 				break;
 			case "lang":
 				linesPrinted = 12;
-				newArgs.type = undefined;
+				args.type = undefined;
 				break;
 		}
 
-		newArgs[from] = undefined;
+		prevArgs[from] = undefined;
 		args[from] = undefined;
 
 		if (process.stdout.isTTY) {
@@ -253,7 +253,7 @@ export const createContext = async (
 			process.stdout.clearScreenDown();
 		}
 
-		return await createContext(newArgs, args);
+		return await createContext(args, prevArgs);
 	};
 
 	// The option to go back to the previous step
@@ -266,7 +266,7 @@ export const createContext = async (
 	};
 
 	const defaultName = args.existingScript || C3_DEFAULTS.projectName;
-	const projectName = await processArgument<string>(args, "projectName", {
+	const projectName = await processArgument(args, "projectName", {
 		type: "text",
 		question: `In which directory do you want to create your application?`,
 		helpText: "also used as application name",
@@ -303,7 +303,7 @@ export const createContext = async (
 		{ label: "Others", value: "others", hidden: true },
 	];
 
-	const category = await processArgument<string>(args, "category", {
+	const category = await processArgument(args, "category", {
 		type: "select",
 		question: "What would you like to start with?",
 		label: "category",
@@ -322,23 +322,19 @@ export const createContext = async (
 			}),
 		);
 
-		const framework = await processArgument<FrameworkName | typeof BACK_VALUE>(
-			args,
-			"framework",
-			{
-				type: "select",
-				label: "framework",
-				question: "Which development framework do you want to use?",
-				options: frameworkOptions.concat(backOption),
-				defaultValue: prevArgs?.framework ?? C3_DEFAULTS.framework,
-			},
-		);
+		const framework = await processArgument(args, "framework", {
+			type: "select",
+			label: "framework",
+			question: "Which development framework do you want to use?",
+			options: frameworkOptions.concat(backOption),
+			defaultValue: prevArgs?.framework ?? C3_DEFAULTS.framework,
+		});
 
 		if (framework === BACK_VALUE) {
 			return goBack("framework");
 		}
 
-		const frameworkConfig = frameworkMap[framework];
+		const frameworkConfig = frameworkMap[framework as FrameworkName];
 
 		if (!frameworkConfig) {
 			crash(`Unsupported framework: ${framework}`);
@@ -370,7 +366,7 @@ export const createContext = async (
 			},
 		);
 
-		const type = await processArgument<string>(args, "type", {
+		const type = await processArgument(args, "type", {
 			type: "select",
 			question: "Which template would you like to use?",
 			label: "type",
@@ -415,7 +411,7 @@ export const createContext = async (
 				{ label: "Python (beta)", value: "python" },
 			];
 
-			const lang = await processArgument<string>(args, "lang", {
+			const lang = await processArgument(args, "lang", {
 				type: "select",
 				question: "Which language do you want to use?",
 				label: "lang",
@@ -494,7 +490,7 @@ export async function copyTemplateFiles(ctx: C3Context) {
 }
 
 export const processRemoteTemplate = async (args: Partial<C3Args>) => {
-	const templateUrl = await processArgument<string>(args, "template", {
+	const templateUrl = await processArgument(args, "template", {
 		type: "text",
 		question:
 			"What's the url of git repo containing the template you'd like to use?",

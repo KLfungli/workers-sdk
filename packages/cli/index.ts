@@ -139,6 +139,15 @@ export const endSection = (heading: string, subheading?: string) => {
 	);
 };
 
+export class CancelError extends Error {
+	constructor(...args: ConstructorParameters<typeof Error>) {
+		super(...args);
+		// Restore prototype chain:
+		// https://www.typescriptlang.org/docs/handbook/release-notes/typescript-2-2.html#support-for-newtarget
+		Object.setPrototypeOf(this, new.target.prototype);
+	}
+}
+
 export const cancel = (
 	msg: string,
 	{
@@ -157,6 +166,8 @@ export const cancel = (
 			multiline,
 		})
 	);
+
+	throw new CancelError(msg);
 };
 
 export const warn = (

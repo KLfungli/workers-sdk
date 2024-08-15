@@ -1,9 +1,9 @@
 import { join } from "path";
 import { crash, updateStatus, warn } from "@cloudflare/cli";
-import { processArgument } from "@cloudflare/cli/args";
 import { brandColor, dim } from "@cloudflare/cli/colors";
 import { spinner } from "@cloudflare/cli/interactive";
 import { runFrameworkGenerator } from "frameworks/index";
+import { processArgument } from "helpers/args";
 import {
 	copyFile,
 	probePaths,

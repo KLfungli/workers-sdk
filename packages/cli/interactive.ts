@@ -227,7 +227,6 @@ export const inputPrompt = async <T = string>(
 
 	if (isCancel(input)) {
 		cancel("Operation cancelled.");
-		process.exit(0);
 	}
 
 	return input;
@@ -259,8 +258,7 @@ const renderSubmit = (config: PromptConfig, value: string) => {
 };
 
 const handleCancel = () => {
-	cancel("Operation cancelled.");
-	process.exit(0);
+	return [];
 };
 
 export const getRenderers = (config: PromptConfig) => {
