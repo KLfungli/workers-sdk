@@ -10,6 +10,7 @@ export type EventPayload = {
 	event: string;
 	deviceId: string;
 	userId: string | undefined;
+	timestamp: number | undefined;
 	properties: Record<string, unknown>;
 };
 

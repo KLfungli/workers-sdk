@@ -1,12 +1,11 @@
 import { AsyncLocalStorage } from "async_hooks";
-import { platform } from "os";
 import { CancelError } from "@cloudflare/cli";
-import { Response } from "undici";
 import { version as c3Version } from "../package.json";
 import { getDeviceId, getSessionId, getUserId } from "./helpers/metrics-config";
 import * as sparrow from "./helpers/sparrow";
 import type { C3Args } from "./types";
 import type { PromptConfig } from "@cloudflare/cli/interactive";
+import type { Response } from "undici";
 
 export type EventProperties = {
 	/**
@@ -18,11 +17,6 @@ export type EventProperties = {
 	 * The current CLI version
 	 */
 	c3Version?: string;
-
-	/**
-	 * An ISO 8601 timestamp generated on the user’s machine
-	 */
-	timestamp?: string;
 
 	/**
 	 * A UUID associating events from the same session
@@ -68,54 +62,42 @@ export type Event =
 			name: "c3 session started";
 			properties: Pick<
 				EventProperties,
-				"args" | "c3Version" | "sessionId" | "timestamp" | "os"
+				"args" | "c3Version" | "sessionId" | "os"
 			>;
 	  }
 	| {
 			name: "c3 session cancelled";
 			properties: Pick<
 				EventProperties,
-				"args" | "c3Version" | "sessionId" | "timestamp" | "os"
+				"args" | "c3Version" | "sessionId" | "os"
 			>;
 	  }
 	| {
 			name: "c3 session errored";
 			properties: Pick<
 				EventProperties,
-				"args" | "c3Version" | "sessionId" | "timestamp" | "os" | "error"
+				"args" | "c3Version" | "sessionId" | "os" | "error"
 			>;
 	  }
 	| {
 			name: "c3 session completed";
 			properties: Pick<
 				EventProperties,
-				"args" | "c3Version" | "sessionId" | "timestamp" | "os"
+				"args" | "c3Version" | "sessionId" | "os"
 			>;
 	  }
 	| {
 			name: "c3 prompt started";
 			properties: Pick<
 				EventProperties,
-				| "args"
-				| "c3Version"
-				| "sessionId"
-				| "timestamp"
-				| "os"
-				| "key"
-				| "promptConfig"
+				"args" | "c3Version" | "sessionId" | "os" | "key" | "promptConfig"
 			>;
 	  }
 	| {
 			name: "c3 prompt cancelled";
 			properties: Pick<
 				EventProperties,
-				| "args"
-				| "c3Version"
-				| "sessionId"
-				| "timestamp"
-				| "os"
-				| "key"
-				| "promptConfig"
+				"args" | "c3Version" | "sessionId" | "os" | "key" | "promptConfig"
 			>;
 	  }
 	| {
@@ -125,7 +107,6 @@ export type Event =
 				| "args"
 				| "c3Version"
 				| "sessionId"
-				| "timestamp"
 				| "os"
 				| "key"
 				| "promptConfig"
@@ -139,7 +120,6 @@ export type Event =
 				| "args"
 				| "c3Version"
 				| "sessionId"
-				| "timestamp"
 				| "os"
 				| "key"
 				| "promptConfig"
@@ -182,11 +162,11 @@ export function sendEvent<EventName extends Event["name"]>(
 		event: name,
 		deviceId,
 		userId,
+		timestamp: Date.now(),
 		properties: {
 			...properties,
 			c3Version: properties.c3Version ?? c3Version,
 			sessionId: properties.sessionId ?? sessionId,
-			timestamp: properties.timestamp ?? new Date().toISOString(),
 			os: properties.os ?? os,
 		},
 	});
@@ -205,10 +185,14 @@ export async function collectAsyncMetrics<
 	try {
 		sendEvent(`${config.eventPrefix} started`, config.props);
 
-		const appendMetricsData: AppendMetricsDataFn = (key, value) => {
-			config.props[key] = value;
-		};
-		const result = await context.run({ appendMetricsData }, config.promise);
+		const result = await context.run(
+			{
+				appendMetricsData(key, value) {
+					config.props[key] = value;
+				},
+			},
+			config.promise,
+		);
 
 		sendEvent(`${config.eventPrefix} completed`, config.props);
 
