@@ -71,6 +71,7 @@
 		"dotenv": "^16.0.0",
 		"esbuild": "0.17.19",
 		"execa": "^7.1.1",
+		"exit-hook": "^4.0.0",
 		"find-up": "^6.3.0",
 		"glob": "^10.3.3",
 		"haikunator": "^2.1.2",

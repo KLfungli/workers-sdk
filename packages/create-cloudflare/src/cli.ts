@@ -4,6 +4,7 @@ import { dirname } from "path";
 import { chdir } from "process";
 import { crash, endSection, logRaw, startSection } from "@cloudflare/cli";
 import { isInteractive } from "@cloudflare/cli/interactive";
+import { asyncExitHook } from "exit-hook";
 import { parseArgs } from "helpers/args";
 import { isUpdateAvailable } from "helpers/cli";
 import { runCommand } from "helpers/command";
@@ -16,7 +17,7 @@ import { version } from "../package.json";
 import { maybeOpenBrowser, offerToDeploy, runDeploy } from "./deploy";
 import { printSummary, printWelcomeMessage } from "./dialog";
 import { gitCommit, offerGit } from "./git";
-import { collectAsyncMetrics } from "./metrics";
+import { collectAsyncMetrics, waitForAllEventsSettled } from "./metrics";
 import { createProject } from "./pages";
 import {
 	addWranglerToGitIgnore,
@@ -32,6 +33,8 @@ import { updateWranglerToml } from "./wrangler/config";
 import type { C3Args, C3Context } from "types";
 
 const { npm } = detectPackageManager();
+
+asyncExitHook(waitForAllEventsSettled, { wait: 500 });
 
 export const main = async (argv: string[]) => {
 	const args = await parseArgs(argv);
@@ -163,4 +166,6 @@ const printBanner = () => {
 	startSection(`Create an application with Cloudflare`, "Step 1 of 3");
 };
 
-main(process.argv).catch((e) => crash(e));
+main(process.argv).catch((e) => {
+	// crash(e);
+});

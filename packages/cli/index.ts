@@ -1,4 +1,3 @@
-import { exit } from "process";
 import {
 	bgBlue,
 	bgGreen,
@@ -238,7 +237,8 @@ export const hyperlink = (url: string, label = url) => {
 
 export const crash: (msg?: string, extra?: string) => never = (msg, extra) => {
 	error(msg, extra);
-	exit(1);
+
+	throw new Error(msg);
 };
 
 export const error = (

@@ -31,6 +31,11 @@ export type EventProperties = {
 		arch: string;
 	};
 
+	/**
+	 * The signal that triggers the cancelled event
+	 */
+	signal?: NodeJS.Signals;
+
 	error?: {
 		message: string | undefined;
 		stack: string | undefined;
@@ -69,7 +74,7 @@ export type Event =
 			name: "c3 session cancelled";
 			properties: Pick<
 				EventProperties,
-				"args" | "c3Version" | "sessionId" | "os"
+				"args" | "c3Version" | "sessionId" | "os" | "signal"
 			>;
 	  }
 	| {
@@ -97,7 +102,13 @@ export type Event =
 			name: "c3 prompt cancelled";
 			properties: Pick<
 				EventProperties,
-				"args" | "c3Version" | "sessionId" | "os" | "key" | "promptConfig"
+				| "args"
+				| "c3Version"
+				| "sessionId"
+				| "os"
+				| "key"
+				| "promptConfig"
+				| "signal"
 			>;
 	  }
 	| {
@@ -148,8 +159,12 @@ const context = new AsyncLocalStorage<{
 	appendMetricsData: AppendMetricsDataFn;
 }>();
 
-export function waitForAllEventsSettled() {
-	return Promise.allSettled(events);
+export async function waitForAllEventsSettled(): Promise<void> {
+	// const start = Date.now();
+	// console.debug("Waiting for all events to be settled");
+	await Promise.allSettled(events);
+	// const duration = Date.now() - start;
+	// console.debug("All events settled in", duration, "ms");
 }
 
 export function sendEvent<EventName extends Event["name"]>(
@@ -182,8 +197,16 @@ export async function collectAsyncMetrics<
 	props: EventProperties;
 	promise: () => Promise<Result>;
 }): Promise<Result> {
+	const handleCancel = (signal?: NodeJS.Signals) =>
+		sendEvent(`${config.eventPrefix} cancelled`, {
+			...config.props,
+			signal,
+		});
+
 	try {
 		sendEvent(`${config.eventPrefix} started`, config.props);
+
+		process.on("SIGINT", handleCancel).on("SIGTERM", handleCancel);
 
 		const result = await context.run(
 			{
@@ -199,7 +222,7 @@ export async function collectAsyncMetrics<
 		return result;
 	} catch (error) {
 		if (error instanceof CancelError) {
-			sendEvent(`${config.eventPrefix} cancelled`, config.props);
+			handleCancel();
 		} else {
 			sendEvent(`${config.eventPrefix} errored`, {
 				...config.props,
@@ -211,6 +234,8 @@ export async function collectAsyncMetrics<
 		}
 
 		throw error;
+	} finally {
+		process.off("SIGINT", handleCancel).off("SIGTERM", handleCancel);
 	}
 }
 
