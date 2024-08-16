@@ -1,7 +1,13 @@
 import { AsyncLocalStorage } from "async_hooks";
 import { CancelError } from "@cloudflare/cli";
 import { version as c3Version } from "../package.json";
-import { getDeviceId, getSessionId, getUserId } from "./helpers/metrics-config";
+import {
+	getDeviceId,
+	getSessionId,
+	getUserId,
+	readMetricsConfig,
+	writeMetricsConfig,
+} from "./helpers/metrics-config";
 import * as sparrow from "./helpers/sparrow";
 import type { C3Args } from "./types";
 import type { PromptConfig } from "@cloudflare/cli/interactive";
@@ -171,6 +177,12 @@ export function sendEvent<EventName extends Event["name"]>(
 	name: EventName,
 	properties: Extract<Event, { name: EventName }>["properties"],
 ): void {
+	const telemetry = getTelemetryStatus();
+
+	if (!telemetry.enabled) {
+		return;
+	}
+
 	// Get the latest userId everytime in case it is updated
 	const userId = getUserId();
 	const response = sparrow.sendEvent({
@@ -252,4 +264,30 @@ export function appendMetricsData<Key extends keyof EventProperties>(
 	}
 
 	return store.appendMetricsData(key, value);
+}
+
+export function getTelemetryStatus() {
+	const config = readMetricsConfig();
+
+	if (!config.c3permission) {
+		config.c3permission = {
+			enabled: true,
+			date: new Date(),
+		};
+
+		writeMetricsConfig(config);
+	}
+
+	return config.c3permission;
+}
+
+export function updateTelemetryStatus(enabled: boolean) {
+	const config = readMetricsConfig();
+
+	config.c3permission = {
+		enabled,
+		date: new Date(),
+	};
+
+	writeMetricsConfig(config);
 }

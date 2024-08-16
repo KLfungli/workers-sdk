@@ -4,8 +4,8 @@ import { dirname } from "path";
 import { chdir } from "process";
 import { crash, endSection, logRaw, startSection } from "@cloudflare/cli";
 import { isInteractive } from "@cloudflare/cli/interactive";
-import { asyncExitHook } from "exit-hook";
-import { parseArgs } from "helpers/args";
+import { asyncExitHook, gracefulExit } from "exit-hook";
+import { cliDefinition, parseArgs } from "helpers/args";
 import { isUpdateAvailable } from "helpers/cli";
 import { runCommand } from "helpers/command";
 import {
@@ -17,7 +17,13 @@ import { version } from "../package.json";
 import { maybeOpenBrowser, offerToDeploy, runDeploy } from "./deploy";
 import { printSummary, printWelcomeMessage } from "./dialog";
 import { gitCommit, offerGit } from "./git";
-import { collectAsyncMetrics, waitForAllEventsSettled } from "./metrics";
+import { showHelp } from "./help";
+import {
+	collectAsyncMetrics,
+	getTelemetryStatus,
+	updateTelemetryStatus,
+	waitForAllEventsSettled,
+} from "./metrics";
 import { createProject } from "./pages";
 import {
 	addWranglerToGitIgnore,
@@ -37,7 +43,54 @@ const { npm } = detectPackageManager();
 asyncExitHook(waitForAllEventsSettled, { wait: 500 });
 
 export const main = async (argv: string[]) => {
-	const args = await parseArgs(argv);
+	const command = await parseArgs(argv);
+
+	if (command.type === "log") {
+		if (command.help) {
+			showHelp(cliDefinition);
+		}
+
+		if (command.message) {
+			console.warn(command.message);
+		}
+
+		gracefulExit(command.exitCode ?? 0);
+		return;
+	}
+
+	if (command.type === "telemetry") {
+		const logTelemetryStatus = (enabled: boolean) => {
+			logRaw(`Status: ${enabled ? "Enabled" : "Disabled"}`);
+			logRaw("");
+		};
+
+		switch (command.action) {
+			case "enable": {
+				updateTelemetryStatus(true);
+				logTelemetryStatus(true);
+				logRaw(
+					"Create-Cloudflare telemetry is completely anonymous. Thank you for helping us improve the experience!",
+				);
+				return;
+			}
+			case "disable": {
+				updateTelemetryStatus(false);
+				logTelemetryStatus(false);
+				logRaw(
+					"Create-Cloudflare is no longer collecting anonymous usage data",
+				);
+				return;
+			}
+			case "status": {
+				const telemetry = getTelemetryStatus();
+
+				logTelemetryStatus(telemetry.enabled);
+				return;
+			}
+		}
+	}
+
+	const { args } = command;
 
 	// Print a newline
 	logRaw("");

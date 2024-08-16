@@ -53,6 +53,12 @@ export interface MetricsConfigFile {
 		/** The date that this permission was set. */
 		date: Date;
 	};
+	c3permission?: {
+		/** True if c3 should send metrics to Cloudflare. */
+		enabled: boolean;
+		/** The date that this permission was set. */
+		date: Date;
+	};
 	/** A unique UUID that identifies this device for metrics purposes. */
 	deviceId?: string;
 }

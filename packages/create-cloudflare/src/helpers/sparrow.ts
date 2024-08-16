@@ -16,6 +16,9 @@ export type EventPayload = {
 
 export function sendEvent(payload: EventPayload) {
 	if (!SPARROW_SOURCE_KEY) {
+		console.debug(
+			"Skipping metrics event because SPARROW_SOURCE_KEY is not set",
+		);
 		return;
 	}
 
