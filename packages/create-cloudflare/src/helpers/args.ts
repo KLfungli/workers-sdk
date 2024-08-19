@@ -379,6 +379,27 @@ export const processArgument = async <Key extends keyof C3Args>(
 	key: Key,
 	promptConfig: PromptConfig,
 ) => {
+	const value = args[key];
+	const process = async () => {
+		const result = await inputPrompt<Required<C3Args>[Key]>({
+			...promptConfig,
+			// Accept the default value if the arg is already set
+			acceptDefault: promptConfig.acceptDefault ?? value !== undefined,
+			defaultValue: value ?? promptConfig.defaultValue,
+		});
+
+		// Update value in args before returning the result
+		args[key] = result;
+
+		return result;
+	};
+
+	if (value !== undefined) {
+		// Skip metrics collection if the arg value is already set
+		// This can happen when the arg is set via the CLI or if the user has already answered the prompt previously
+		return await process();
+	}
+
 	return await collectAsyncMetrics({
 		eventPrefix: "c3 prompt",
 		props: {
@@ -386,17 +407,8 @@ export const processArgument = async <Key extends keyof C3Args>(
 			key,
 			promptConfig,
 		},
-		promise: async () => {
-			const value = args[key];
-			const result = await inputPrompt<Required<C3Args>[Key]>({
-				...promptConfig,
-				// Accept the default value if the arg is already set
-				acceptDefault: promptConfig.acceptDefault ?? value !== undefined,
-				defaultValue: value ?? promptConfig.defaultValue,
-			});
-
-			// Update value in args before returning the result
-			args[key] = result;
+		async promise() {
+			const result = await process();
 
 			// Set properties for prompt completed event
 			appendMetricsData("answer", result);
