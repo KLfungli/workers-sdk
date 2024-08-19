@@ -2,8 +2,7 @@ import { fetch } from "undici";
 
 // The SPARROW_SOURCE_KEY is provided at esbuild time as a `define` for production and beta
 // releases. Otherwise it is left undefined, which automatically disables metrics requests.
-// Note: this is the "test/staging" key copied from .github/workflows/prereleases.yml
-const SPARROW_SOURCE_KEY = "5adf183f94b3436ba78d67f506965998";
+declare const SPARROW_SOURCE_KEY: string;
 const SPARROW_URL = "https://sparrow.cloudflare.com";
 
 export type EventPayload = {
@@ -14,11 +13,12 @@ export type EventPayload = {
 	properties: Record<string, unknown>;
 };
 
+export function hasSparrowSourceKey() {
+	return SPARROW_SOURCE_KEY !== "";
+}
+
 export function sendEvent(payload: EventPayload) {
 	if (!SPARROW_SOURCE_KEY) {
-		console.debug(
-			"Skipping metrics event because SPARROW_SOURCE_KEY is not set",
-		);
 		return;
 	}
 

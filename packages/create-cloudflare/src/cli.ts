@@ -13,6 +13,7 @@ import {
 	rectifyPmMismatch,
 } from "helpers/packageManagers";
 import { installWrangler, npmInstall } from "helpers/packages";
+import { hasSparrowSourceKey } from "helpers/sparrow";
 import { version } from "../package.json";
 import { maybeOpenBrowser, offerToDeploy, runDeploy } from "./deploy";
 import { printSummary, printWelcomeMessage } from "./dialog";
@@ -215,10 +216,13 @@ const deploy = async (ctx: C3Context) => {
 };
 
 const printBanner = () => {
-	printWelcomeMessage(version);
+	printWelcomeMessage(
+		version,
+		hasSparrowSourceKey() && getTelemetryStatus().enabled,
+	);
 	startSection(`Create an application with Cloudflare`, "Step 1 of 3");
 };
 
 main(process.argv).catch((e) => {
-	// crash(e);
+	crash(e);
 });
