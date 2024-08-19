@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from "async_hooks";
-import { CancelError } from "@cloudflare/cli";
+import { CancelError, logRaw } from "@cloudflare/cli";
 import { version as c3Version } from "../package.json";
 import {
 	getDeviceId,
@@ -291,3 +291,33 @@ export function updateTelemetryStatus(enabled: boolean) {
 
 	writeMetricsConfig(config);
 }
+
+export const runTelemetry = (action: "status" | "enable" | "disable") => {
+	const logTelemetryStatus = (enabled: boolean) => {
+		logRaw(`Status: ${enabled ? "Enabled" : "Disabled"}`);
+		logRaw("");
+	};
+
+	switch (action) {
+		case "enable": {
+			updateTelemetryStatus(true);
+			logTelemetryStatus(true);
+			logRaw(
+				"Create-Cloudflare telemetry is completely anonymous. Thank you for helping us improve the experience!",
+			);
+			break;
+		}
+		case "disable": {
+			updateTelemetryStatus(false);
+			logTelemetryStatus(false);
+			logRaw("Create-Cloudflare is no longer collecting anonymous usage data");
+			break;
+		}
+		case "status": {
+			const telemetry = getTelemetryStatus();
+
+			logTelemetryStatus(telemetry.enabled);
+			break;
+		}
+	}
+};

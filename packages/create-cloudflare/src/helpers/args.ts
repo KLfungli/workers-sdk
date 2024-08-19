@@ -120,7 +120,7 @@ export const cliDefinition: ArgumentsDefinition = {
       pnpm create clouldfare --framework next -- --ts
       `,
 			values: [
-				{ name: "analog" },
+				{ name: "anaunknown" },
 				{ name: "angular" },
 				{ name: "astro" },
 				{ name: "docusaurus" },
@@ -235,9 +235,9 @@ export const parseArgs = async (
 			action: "enable" | "disable" | "status";
 	  }
 	| {
-			type: "log";
-			help?: boolean;
-			message?: string;
+			type: "unknown";
+			showHelpMessage?: boolean;
+			additionalMessage?: string;
 			exitCode?: number;
 	  }
 > => {
@@ -249,8 +249,10 @@ export const parseArgs = async (
 	const additionalArgs =
 		doubleDashesIdx < 0 ? [] : argv.slice(doubleDashesIdx + 1);
 
-	if (c3Args[2] === "telemetry") {
-		const action = c3Args[3];
+	const c3positionalArgs = c3Args.filter((arg) => !arg.startsWith("-"));
+
+	if (c3positionalArgs[2] === "telemetry") {
+		const action = c3positionalArgs[3];
 
 		switch (action) {
 			case "enable":
@@ -294,21 +296,21 @@ export const parseArgs = async (
 
 	if (args === null) {
 		return {
-			type: "log",
+			type: "unknown",
 			exitCode: 1,
 		};
 	}
 
 	if (args.version) {
 		return {
-			type: "log",
+			type: "unknown",
 		};
 	}
 
 	if (args.help) {
 		return {
-			type: "log",
-			help: true,
+			type: "unknown",
+			showHelpMessage: true,
 		};
 	}
 
@@ -317,10 +319,10 @@ export const parseArgs = async (
 	for (const opt in args) {
 		if (!validOption(opt)) {
 			return {
-				type: "log",
-				help: true,
+				type: "unknown",
+				showHelpMessage: true,
 				exitCode: 1,
-				message: `\nUnrecognized option: ${opt}`,
+				additionalMessage: `\nUnrecognized option: ${opt}`,
 			};
 		}
 	}
@@ -328,10 +330,10 @@ export const parseArgs = async (
 	// since `yargs.strict()` can't check the `positional`s for us we need to do it manually ourselves
 	if (positionalArgs.length > 1) {
 		return {
-			type: "log",
-			help: true,
+			type: "unknown",
+			showHelpMessage: true,
 			exitCode: 1,
-			message: "\nToo many positional arguments provided",
+			additionalMessage: "\nToo many positional arguments provided",
 		};
 	}
 
