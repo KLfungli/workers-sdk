@@ -178,7 +178,7 @@ export function sendEvent<EventName extends Event["name"]>(
 	name: EventName,
 	properties: Extract<Event, { name: EventName }>["properties"],
 ): void {
-	const telemetry = getTelemetryStatus();
+	const telemetry = getC3Permission();
 
 	if (!telemetry.enabled) {
 		return;
@@ -202,6 +202,8 @@ export function sendEvent<EventName extends Event["name"]>(
 	events.push(response);
 }
 
+// Collect metrics for an async function
+// This tracks each stages of the async function and sends the corresonding event to sparrow
 export async function collectAsyncMetrics<
 	Prefix extends EventPrefix<"started" | "cancelled" | "errored" | "completed">,
 	Result,
@@ -219,10 +221,13 @@ export async function collectAsyncMetrics<
 	try {
 		sendEvent(`${config.eventPrefix} started`, config.props);
 
+		// Attach the SIGINT and SIGTERM event listeners to handle cancellation
 		process.on("SIGINT", handleCancel).on("SIGTERM", handleCancel);
 
 		const result = await context.run(
 			{
+				// This allows the promise to use the `appendMetricsData` helper to
+				// update the properties object sent to sparrow
 				appendMetricsData(key, value) {
 					config.props[key] = value;
 				},
@@ -246,12 +251,15 @@ export async function collectAsyncMetrics<
 			});
 		}
 
+		// Rethrow the error so it can be caught by the caller
 		throw error;
 	} finally {
+		// Clean up the event listeners
 		process.off("SIGINT", handleCancel).off("SIGTERM", handleCancel);
 	}
 }
 
+// To be used within `collectAsyncMetrics` to update the properties object sent to sparrow
 export function appendMetricsData<Key extends keyof EventProperties>(
 	key: Key,
 	value: EventProperties[Key],
@@ -267,14 +275,18 @@ export function appendMetricsData<Key extends keyof EventProperties>(
 	return store.appendMetricsData(key, value);
 }
 
-export function getTelemetryStatus() {
+export function initializeC3Permission(enabled = true) {
+	return {
+		enabled,
+		date: new Date(),
+	};
+}
+
+export function getC3Permission() {
 	const config = readMetricsConfig();
 
 	if (!config.c3permission) {
-		config.c3permission = {
-			enabled: true,
-			date: new Date(),
-		};
+		config.c3permission = initializeC3Permission();
 
 		writeMetricsConfig(config);
 	}
@@ -282,18 +294,20 @@ export function getTelemetryStatus() {
 	return config.c3permission;
 }
 
-export function updateTelemetryStatus(enabled: boolean) {
+// To update the c3permission property in the metrics config
+export function updateC3Pemission(enabled: boolean) {
 	const config = readMetricsConfig();
 
-	config.c3permission = {
-		enabled,
-		date: new Date(),
-	};
+	if (!config.c3permission || config.c3permission.enabled !== enabled) {
+		config.c3permission = initializeC3Permission(enabled);
+	}
 
 	writeMetricsConfig(config);
 }
 
-export const runTelemetry = (action: "status" | "enable" | "disable") => {
+export const runTelemetryCommand = (
+	action: "status" | "enable" | "disable",
+) => {
 	const logTelemetryStatus = (enabled: boolean) => {
 		logRaw(`Status: ${enabled ? "Enabled" : "Disabled"}`);
 		logRaw("");
@@ -301,7 +315,7 @@ export const runTelemetry = (action: "status" | "enable" | "disable") => {
 
 	switch (action) {
 		case "enable": {
-			updateTelemetryStatus(true);
+			updateC3Pemission(true);
 			logTelemetryStatus(true);
 			logRaw(
 				"Create-Cloudflare telemetry is completely anonymous. Thank you for helping us improve the experience!",
@@ -309,13 +323,13 @@ export const runTelemetry = (action: "status" | "enable" | "disable") => {
 			break;
 		}
 		case "disable": {
-			updateTelemetryStatus(false);
+			updateC3Pemission(false);
 			logTelemetryStatus(false);
 			logRaw("Create-Cloudflare is no longer collecting anonymous usage data");
 			break;
 		}
 		case "status": {
-			const telemetry = getTelemetryStatus();
+			const telemetry = getC3Permission();
 
 			logTelemetryStatus(telemetry.enabled);
 			break;

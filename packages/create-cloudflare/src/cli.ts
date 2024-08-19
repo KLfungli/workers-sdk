@@ -28,8 +28,8 @@ import { gitCommit, offerGit } from "./git";
 import { showHelp } from "./help";
 import {
 	collectAsyncMetrics,
-	getTelemetryStatus,
-	runTelemetry,
+	getC3Permission,
+	runTelemetryCommand,
 	waitForAllEventsSettled,
 } from "./metrics";
 import { createProject } from "./pages";
@@ -67,7 +67,7 @@ export const main = async (argv: string[]) => {
 	}
 
 	if (result.type === "telemetry") {
-		runTelemetry(result.action);
+		runTelemetryCommand(result.action);
 		return;
 	}
 
@@ -198,7 +198,7 @@ const deploy = async (ctx: C3Context) => {
 const printBanner = () => {
 	printWelcomeMessage(
 		version,
-		hasSparrowSourceKey() && getTelemetryStatus().enabled,
+		hasSparrowSourceKey() && getC3Permission().enabled,
 	);
 	startSection(`Create an application with Cloudflare`, "Step 1 of 3");
 };
