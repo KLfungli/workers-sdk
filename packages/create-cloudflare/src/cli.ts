@@ -2,7 +2,14 @@
 import { mkdirSync } from "fs";
 import { dirname } from "path";
 import { chdir } from "process";
-import { crash, endSection, logRaw, startSection } from "@cloudflare/cli";
+import {
+	cancel,
+	crash,
+	endSection,
+	logRaw,
+	startSection,
+} from "@cloudflare/cli";
+import { CancelError } from "@cloudflare/cli/error";
 import { isInteractive } from "@cloudflare/cli/interactive";
 import { asyncExitHook, gracefulExit } from "exit-hook";
 import { cliDefinition, parseArgs } from "helpers/args";
@@ -197,5 +204,9 @@ const printBanner = () => {
 };
 
 main(process.argv).catch((e) => {
-	crash(e);
+	if (e instanceof CancelError) {
+		cancel(e.message);
+	} else {
+		crash(e);
+	}
 });

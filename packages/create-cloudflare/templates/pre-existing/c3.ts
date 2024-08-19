@@ -23,6 +23,7 @@ export async function copyExistingWorkerFiles(ctx: C3Context) {
 					"Please specify the name of the existing worker in this account?",
 				label: "worker",
 				defaultValue: ctx.project.name,
+				throwOnError: true,
 			},
 		);
 	}

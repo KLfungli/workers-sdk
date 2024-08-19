@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from "async_hooks";
-import { CancelError, logRaw } from "@cloudflare/cli";
+import { logRaw } from "@cloudflare/cli";
+import { CancelError } from "@cloudflare/cli/error";
 import { version as c3Version } from "../package.json";
 import {
 	getDeviceId,

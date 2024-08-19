@@ -38,6 +38,7 @@ export const offerGit = async (ctx: C3Context) => {
 		question: "Do you want to use git for version control?",
 		label: "git",
 		defaultValue: C3_DEFAULTS.git,
+		throwOnError: true,
 	});
 
 	if (!ctx.args.git) {

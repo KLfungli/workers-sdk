@@ -276,6 +276,7 @@ export const createContext = async (
 		validate: (value) =>
 			validateProjectDirectory(String(value) || C3_DEFAULTS.projectName, args),
 		format: (val) => `./${val}`,
+		throwOnError: true,
 	});
 
 	const categoryOptions = [
@@ -310,6 +311,7 @@ export const createContext = async (
 		label: "category",
 		options: categoryOptions,
 		defaultValue: prevArgs?.category ?? C3_DEFAULTS.category,
+		throwOnError: true,
 	});
 
 	let template: TemplateConfig;
@@ -329,6 +331,7 @@ export const createContext = async (
 			question: "Which development framework do you want to use?",
 			options: frameworkOptions.concat(backOption),
 			defaultValue: prevArgs?.framework ?? C3_DEFAULTS.framework,
+			throwOnError: true,
 		});
 
 		if (framework === BACK_VALUE) {
@@ -373,6 +376,7 @@ export const createContext = async (
 			label: "type",
 			options: templateOptions.concat(backOption),
 			defaultValue: prevArgs?.type ?? C3_DEFAULTS.type,
+			throwOnError: true,
 		});
 
 		if (type === BACK_VALUE) {
@@ -421,6 +425,7 @@ export const createContext = async (
 					// Allow going back only if the user is not selecting a remote template
 					.concat(args.template ? [] : backOption),
 				defaultValue: C3_DEFAULTS.lang,
+				throwOnError: true,
 			});
 
 			if (lang === BACK_VALUE) {
@@ -498,6 +503,7 @@ export const processRemoteTemplate = async (args: Partial<C3Args>) => {
 		label: "repository",
 		validate: (val) => validateTemplateUrl(val || C3_DEFAULTS.template),
 		defaultValue: C3_DEFAULTS.template,
+		throwOnError: true,
 	});
 
 	let src = templateUrl;

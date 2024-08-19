@@ -36,6 +36,7 @@ export const offerToDeploy = async (ctx: C3Context) => {
 		question: "Do you want to deploy your application?",
 		label,
 		defaultValue: C3_DEFAULTS.deploy,
+		throwOnError: true,
 	});
 
 	if (!shouldDeploy) {
