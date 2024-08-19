@@ -52,7 +52,7 @@ export const main = async (argv: string[]) => {
 		}
 
 		if (result.additionalMessage) {
-			console.warn(result.additionalMessage);
+			console.warn(`\n${result.additionalMessage}`);
 		}
 
 		gracefulExit(result.exitCode ?? 0);

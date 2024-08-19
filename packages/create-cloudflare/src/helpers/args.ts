@@ -322,7 +322,7 @@ export const parseArgs = async (
 				type: "unknown",
 				showHelpMessage: true,
 				exitCode: 1,
-				additionalMessage: `\nUnrecognized option: ${opt}`,
+				additionalMessage: `Unrecognized option: ${opt}`,
 			};
 		}
 	}
@@ -333,7 +333,7 @@ export const parseArgs = async (
 			type: "unknown",
 			showHelpMessage: true,
 			exitCode: 1,
-			additionalMessage: "\nToo many positional arguments provided",
+			additionalMessage: "Too many positional arguments provided",
 		};
 	}
 
