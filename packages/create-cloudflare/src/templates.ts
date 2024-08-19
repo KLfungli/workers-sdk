@@ -227,7 +227,7 @@ export const createContext = async (
 	// Allows the users to go back to the previous step
 	// By moving the cursor up to a certain line and clearing the screen
 	const goBack = async (from: "type" | "framework" | "lang") => {
-		const prevArgs = { ...args };
+		const currentArgs = { ...args };
 		let linesPrinted = 0;
 
 		switch (from) {
@@ -245,7 +245,8 @@ export const createContext = async (
 				break;
 		}
 
-		prevArgs[from] = undefined;
+		// To remove the BACK_VALUE from the result args
+		currentArgs[from] = undefined;
 		args[from] = undefined;
 
 		if (process.stdout.isTTY) {
@@ -253,7 +254,7 @@ export const createContext = async (
 			process.stdout.clearScreenDown();
 		}
 
-		return await createContext(args, prevArgs);
+		return await createContext(args, currentArgs);
 	};
 
 	// The option to go back to the previous step
