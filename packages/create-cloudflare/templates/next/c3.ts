@@ -1,9 +1,8 @@
 import { join } from "path";
 import { crash, updateStatus, warn } from "@cloudflare/cli";
 import { brandColor, dim } from "@cloudflare/cli/colors";
-import { spinner } from "@cloudflare/cli/interactive";
+import { inputPrompt, spinner } from "@cloudflare/cli/interactive";
 import { runFrameworkGenerator } from "frameworks/index";
-import { processArgument } from "helpers/args";
 import {
 	copyFile,
 	probePaths,
@@ -18,7 +17,7 @@ import { detectPackageManager } from "helpers/packageManagers";
 import { installPackages } from "helpers/packages";
 import { getTemplatePath } from "../../src/templates";
 import type { TemplateConfig } from "../../src/templates";
-import type { C3Args, C3Context } from "types";
+import type { C3Context } from "types";
 
 const { npm, npx } = detectPackageManager();
 
@@ -135,7 +134,7 @@ export const shouldInstallNextOnPagesEslintPlugin = async (
 		return false;
 	}
 
-	return await processArgument(ctx.args, "eslint-plugin" as keyof C3Args, {
+	return await inputPrompt({
 		type: "confirm",
 		question: "Do you want to use the next-on-pages eslint-plugin?",
 		label: "eslint-plugin",
