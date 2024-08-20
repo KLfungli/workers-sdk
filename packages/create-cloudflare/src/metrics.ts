@@ -228,7 +228,9 @@ export function createReporter() {
 		props: EventProperties;
 		promise: () => Promise<Result>;
 	}): Promise<Result> {
-		const { reject, promise } = promiseWithResolvers<never>();
+		const startTime = Date.now();
+
+		const { reject, promise: cancelPromise } = promiseWithResolvers<never>();
 		const handleSignal = (signal?: NodeJS.Signals) => {
 			reject(new CancelError(signal));
 		};
@@ -250,18 +252,27 @@ export function createReporter() {
 					},
 					config.promise,
 				),
-				promise,
+				cancelPromise,
 			]);
 
-			sendEvent(`${config.eventPrefix} completed`, config.props);
+			sendEvent(`${config.eventPrefix} completed`, {
+				...config.props,
+				durationMs: Date.now() - startTime,
+			});
 
 			return result;
 		} catch (error) {
+			const durationMs = Date.now() - startTime;
+
 			if (error instanceof CancelError) {
-				sendEvent(`${config.eventPrefix} cancelled`, config.props);
+				sendEvent(`${config.eventPrefix} cancelled`, {
+					...config.props,
+					durationMs,
+				});
 			} else {
 				sendEvent(`${config.eventPrefix} errored`, {
 					...config.props,
+					durationMs,
 					error: {
 						message: error instanceof Error ? error.message : undefined,
 						stack: error instanceof Error ? error.stack : undefined,

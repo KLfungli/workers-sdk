@@ -66,10 +66,12 @@ describe("createReporter", () => {
 
 		resolve("test result");
 
+		vi.advanceTimersByTime(1234);
+
 		await expect(process).resolves.toBe("test result");
 
 		expect(sendEvent).toBeCalledWith({
-			event: "c3 session started",
+			event: "c3 session completed",
 			deviceId,
 			userId,
 			timestamp: Date.now(),
@@ -77,6 +79,7 @@ describe("createReporter", () => {
 				sessionId: "example",
 				c3Version: "1.2.3",
 				os: { platform: "cf", arch: "test" },
+				durationMs: 1234,
 			},
 		});
 		expect(sendEvent).toBeCalledTimes(2);
@@ -109,6 +112,7 @@ describe("createReporter", () => {
 		expect(sendEvent).toBeCalledTimes(1);
 
 		reject(new CancelError("test cancel"));
+		vi.advanceTimersByTime(1234);
 
 		await expect(process).rejects.toThrow(CancelError);
 
@@ -121,6 +125,7 @@ describe("createReporter", () => {
 				sessionId: "example",
 				c3Version: "1.2.3",
 				os: { platform: "cf", arch: "test" },
+				durationMs: 1234,
 			},
 		});
 		expect(sendEvent).toBeCalledTimes(2);
@@ -153,6 +158,7 @@ describe("createReporter", () => {
 		expect(sendEvent).toBeCalledTimes(1);
 
 		reject(new Error("test error"));
+		vi.advanceTimersByTime(1234);
 
 		await expect(process).rejects.toThrow(Error);
 
@@ -165,6 +171,7 @@ describe("createReporter", () => {
 				sessionId: "example",
 				c3Version: "1.2.3",
 				os: { platform: "cf", arch: "test" },
+				durationMs: 1234,
 				error: {
 					message: "test error",
 					stack: expect.any(String),
@@ -202,6 +209,7 @@ describe("createReporter", () => {
 		expect(sendEvent).toBeCalledTimes(1);
 
 		process.emit("SIGINT", "SIGINT");
+		vi.advanceTimersByTime(1234);
 
 		await expect(run).rejects.toThrow(CancelError);
 
@@ -214,6 +222,7 @@ describe("createReporter", () => {
 				sessionId: "example",
 				c3Version: "1.2.3",
 				os: { platform: "cf", arch: "test" },
+				durationMs: 1234,
 			},
 		});
 		expect(sendEvent).toBeCalledTimes(2);
@@ -246,6 +255,7 @@ describe("createReporter", () => {
 		expect(sendEvent).toBeCalledTimes(1);
 
 		process.emit("SIGTERM", "SIGTERM");
+		vi.advanceTimersByTime(1234);
 
 		await expect(run).rejects.toThrow(CancelError);
 
@@ -258,6 +268,7 @@ describe("createReporter", () => {
 				sessionId: "example",
 				c3Version: "1.2.3",
 				os: { platform: "cf", arch: "test" },
+				durationMs: 1234,
 			},
 		});
 		expect(sendEvent).toBeCalledTimes(2);
