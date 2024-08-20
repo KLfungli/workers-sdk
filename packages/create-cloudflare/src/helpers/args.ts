@@ -2,7 +2,7 @@ import { inputPrompt } from "@cloudflare/cli/interactive";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { version } from "../../package.json";
-import { appendMetricsData, collectAsyncMetrics } from "../metrics";
+import { reporter } from "../metrics";
 import { C3_DEFAULTS, WRANGLER_DEFAULTS } from "./cli";
 import type { PromptConfig } from "@cloudflare/cli/interactive";
 import type { C3Args } from "types";
@@ -400,7 +400,7 @@ export const processArgument = async <Key extends keyof C3Args>(
 		return await process();
 	}
 
-	return await collectAsyncMetrics({
+	return await reporter.collectAsyncMetrics({
 		eventPrefix: "c3 prompt",
 		props: {
 			args,
@@ -411,8 +411,8 @@ export const processArgument = async <Key extends keyof C3Args>(
 			const result = await process();
 
 			// Set properties for prompt completed event
-			appendMetricsData("answer", result);
-			appendMetricsData("isDefaultValue", result === C3_DEFAULTS[key]);
+			reporter.appendMetricsData("answer", result);
+			reporter.appendMetricsData("isDefaultValue", result === C3_DEFAULTS[key]);
 
 			return result;
 		},

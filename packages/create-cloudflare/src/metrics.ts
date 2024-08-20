@@ -1,15 +1,15 @@
 import { AsyncLocalStorage } from "async_hooks";
 import { logRaw } from "@cloudflare/cli";
 import { CancelError } from "@cloudflare/cli/error";
-import { version as c3Version } from "../package.json";
 import {
 	getDeviceId,
 	getSessionId,
 	getUserId,
 	readMetricsConfig,
 	writeMetricsConfig,
-} from "./helpers/metrics-config";
-import * as sparrow from "./helpers/sparrow";
+} from "helpers/metrics-config";
+import * as sparrow from "helpers/sparrow";
+import { version as c3Version } from "../package.json";
 import type { C3Args } from "./types";
 import type { PromptConfig } from "@cloudflare/cli/interactive";
 import type { Response } from "undici";
@@ -154,126 +154,153 @@ type AppendMetricsDataFn = <Key extends keyof EventProperties>(
 type EventPrefix<Suffix extends string> =
 	Event["name"] extends `${infer Name} ${Suffix}` ? Name : never;
 
-const events: Array<Promise<Response> | undefined> = [];
-const sessionId = getSessionId();
-const deviceId = getDeviceId();
-const os = {
-	platform: process.platform,
-	arch: process.arch,
-};
+// A method returns an object containing a new Promise object and two functions to resolve or reject it.
+// This can be replaced with `Promise.withResolvers()` when it is available
+export function promiseWithResolvers<T>() {
+	let resolve: ((value: T) => void) | undefined;
+	let reject: ((reason?: unknown) => void) | undefined;
 
-const context = new AsyncLocalStorage<{
-	appendMetricsData: AppendMetricsDataFn;
-}>();
-
-export async function waitForAllEventsSettled(): Promise<void> {
-	// const start = Date.now();
-	// console.debug("Waiting for all events to be settled");
-	await Promise.allSettled(events);
-	// const duration = Date.now() - start;
-	// console.debug("All events settled in", duration, "ms");
-}
-
-export function sendEvent<EventName extends Event["name"]>(
-	name: EventName,
-	properties: Extract<Event, { name: EventName }>["properties"],
-): void {
-	const telemetry = getC3Permission();
-
-	if (!telemetry.enabled) {
-		return;
-	}
-
-	// Get the latest userId everytime in case it is updated
-	const userId = getUserId();
-	const response = sparrow.sendEvent({
-		event: name,
-		deviceId,
-		userId,
-		timestamp: Date.now(),
-		properties: {
-			...properties,
-			c3Version: properties.c3Version ?? c3Version,
-			sessionId: properties.sessionId ?? sessionId,
-			os: properties.os ?? os,
-		},
+	const promise = new Promise<T>((res, rej) => {
+		resolve = res;
+		reject = rej;
 	});
 
-	events.push(response);
+	if (!resolve || !reject) {
+		throw new Error("Promise resolvers not set");
+	}
+
+	return { resolve, reject, promise };
 }
 
-// Collect metrics for an async function
-// This tracks each stages of the async function and sends the corresonding event to sparrow
-export async function collectAsyncMetrics<
-	Prefix extends EventPrefix<"started" | "cancelled" | "errored" | "completed">,
-	Result,
->(config: {
-	eventPrefix: Prefix;
-	props: EventProperties;
-	promise: () => Promise<Result>;
-}): Promise<Result> {
-	const handleCancel = (signal?: NodeJS.Signals) =>
-		sendEvent(`${config.eventPrefix} cancelled`, {
-			...config.props,
-			signal,
-		});
+export function createReporter() {
+	const events: Array<Promise<Response> | undefined> = [];
+	const als = new AsyncLocalStorage<{
+		appendMetricsData: AppendMetricsDataFn;
+	}>();
 
-	try {
-		sendEvent(`${config.eventPrefix} started`, config.props);
+	const telemetry = getC3Permission();
+	const sessionId = getSessionId();
+	const deviceId = getDeviceId();
+	const os = {
+		platform: process.platform,
+		arch: process.arch,
+	};
 
-		// Attach the SIGINT and SIGTERM event listeners to handle cancellation
-		process.on("SIGINT", handleCancel).on("SIGTERM", handleCancel);
-
-		const result = await context.run(
-			{
-				// This allows the promise to use the `appendMetricsData` helper to
-				// update the properties object sent to sparrow
-				appendMetricsData(key, value) {
-					config.props[key] = value;
-				},
-			},
-			config.promise,
-		);
-
-		sendEvent(`${config.eventPrefix} completed`, config.props);
-
-		return result;
-	} catch (error) {
-		if (error instanceof CancelError) {
-			handleCancel();
-		} else {
-			sendEvent(`${config.eventPrefix} errored`, {
-				...config.props,
-				error: {
-					message: error instanceof Error ? error.message : undefined,
-					stack: error instanceof Error ? error.stack : undefined,
-				},
-			});
+	function sendEvent<EventName extends Event["name"]>(
+		name: EventName,
+		properties: Extract<Event, { name: EventName }>["properties"],
+	): void {
+		if (!telemetry.enabled) {
+			return;
 		}
 
-		// Rethrow the error so it can be caught by the caller
-		throw error;
-	} finally {
-		// Clean up the event listeners
-		process.off("SIGINT", handleCancel).off("SIGTERM", handleCancel);
-	}
-}
+		// Get the latest userId everytime in case it is updated
+		const userId = getUserId();
+		const response = sparrow.sendEvent({
+			event: name,
+			deviceId,
+			userId,
+			timestamp: Date.now(),
+			properties: {
+				...properties,
+				c3Version: properties.c3Version ?? c3Version,
+				sessionId: properties.sessionId ?? sessionId,
+				os: properties.os ?? os,
+			},
+		});
 
-// To be used within `collectAsyncMetrics` to update the properties object sent to sparrow
-export function appendMetricsData<Key extends keyof EventProperties>(
-	key: Key,
-	value: EventProperties[Key],
-) {
-	const store = context.getStore();
-
-	if (!store) {
-		throw new Error(
-			"appendMetricsData must be called within collectAsyncMetrics",
-		);
+		events.push(response);
 	}
 
-	return store.appendMetricsData(key, value);
+	async function waitForAllEventsSettled(): Promise<void> {
+		await Promise.allSettled(events);
+	}
+
+	// Collect metrics for an async function
+	// This tracks each stages of the async function and sends the corresonding event to sparrow
+	async function collectAsyncMetrics<
+		Prefix extends EventPrefix<
+			"started" | "cancelled" | "errored" | "completed"
+		>,
+		Result,
+	>(config: {
+		eventPrefix: Prefix;
+		props: EventProperties;
+		promise: () => Promise<Result>;
+	}): Promise<Result> {
+		const { reject, promise } = promiseWithResolvers<never>();
+		const handleSignal = (signal?: NodeJS.Signals) => {
+			reject(new CancelError(signal));
+		};
+
+		try {
+			sendEvent(`${config.eventPrefix} started`, config.props);
+
+			// Attach the SIGINT and SIGTERM event listeners to handle cancellation
+			process.on("SIGINT", handleSignal).on("SIGTERM", handleSignal);
+
+			const result = await Promise.race([
+				als.run(
+					{
+						// This allows the promise to use the `appendMetricsData` helper to
+						// update the properties object sent to sparrow
+						appendMetricsData(key, value) {
+							config.props[key] = value;
+						},
+					},
+					config.promise,
+				),
+				promise,
+			]);
+
+			sendEvent(`${config.eventPrefix} completed`, config.props);
+
+			return result;
+		} catch (error) {
+			if (error instanceof CancelError) {
+				sendEvent(`${config.eventPrefix} cancelled`, config.props);
+			} else {
+				sendEvent(`${config.eventPrefix} errored`, {
+					...config.props,
+					error: {
+						message: error instanceof Error ? error.message : undefined,
+						stack: error instanceof Error ? error.stack : undefined,
+					},
+				});
+			}
+
+			// Rethrow the error so it can be caught by the caller
+			throw error;
+		} finally {
+			// Clean up the event listeners
+			process.off("SIGINT", handleSignal).off("SIGTERM", handleSignal);
+		}
+	}
+
+	// To be used within `collectAsyncMetrics` to update the properties object sent to sparrow
+	function appendMetricsData<Key extends keyof EventProperties>(
+		key: Key,
+		value: EventProperties[Key],
+	) {
+		const store = als.getStore();
+
+		if (!store) {
+			throw new Error(
+				"`appendMetricsData` must be called within `collectAsyncMetrics`",
+			);
+		}
+		return store.appendMetricsData(key, value);
+	}
+
+	return {
+		sendEvent,
+		waitForAllEventsSettled,
+		collectAsyncMetrics,
+		appendMetricsData,
+	};
 }
+
+export const reporter = createReporter();
 
 export function initializeC3Permission(enabled = true) {
 	return {
@@ -283,7 +310,7 @@ export function initializeC3Permission(enabled = true) {
 }
 
 export function getC3Permission() {
-	const config = readMetricsConfig();
+	const config = readMetricsConfig() ?? {};
 
 	if (!config.c3permission) {
 		config.c3permission = initializeC3Permission();
@@ -298,9 +325,12 @@ export function getC3Permission() {
 export function updateC3Pemission(enabled: boolean) {
 	const config = readMetricsConfig();
 
-	if (!config.c3permission || config.c3permission.enabled !== enabled) {
-		config.c3permission = initializeC3Permission(enabled);
+	if (config.c3permission?.enabled === enabled) {
+		// Do nothing if the enabled state is the same
+		return;
 	}
+
+	config.c3permission = initializeC3Permission(enabled);
 
 	writeMetricsConfig(config);
 }

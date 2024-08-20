@@ -26,12 +26,7 @@ import { maybeOpenBrowser, offerToDeploy, runDeploy } from "./deploy";
 import { printSummary, printWelcomeMessage } from "./dialog";
 import { gitCommit, offerGit } from "./git";
 import { showHelp } from "./help";
-import {
-	collectAsyncMetrics,
-	getC3Permission,
-	runTelemetryCommand,
-	waitForAllEventsSettled,
-} from "./metrics";
+import { getC3Permission, reporter, runTelemetryCommand } from "./metrics";
 import { createProject } from "./pages";
 import {
 	addWranglerToGitIgnore,
@@ -48,7 +43,7 @@ import type { C3Args, C3Context } from "types";
 
 const { npm } = detectPackageManager();
 
-asyncExitHook(waitForAllEventsSettled, { wait: 500 });
+asyncExitHook(reporter.waitForAllEventsSettled, { wait: 500 });
 
 export const main = async (argv: string[]) => {
 	const result = await parseArgs(argv);
@@ -85,7 +80,7 @@ export const main = async (argv: string[]) => {
 	) {
 		await runLatest();
 	} else {
-		await collectAsyncMetrics({
+		await reporter.collectAsyncMetrics({
 			eventPrefix: "c3 session",
 			props: {
 				args,
