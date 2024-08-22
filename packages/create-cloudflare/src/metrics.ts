@@ -10,149 +10,18 @@ import {
 } from "helpers/metrics-config";
 import * as sparrow from "helpers/sparrow";
 import { version as c3Version } from "../package.json";
-import type { C3Args } from "./types";
-import type { PromptConfig } from "@cloudflare/cli/interactive";
+import type { Event } from "./event";
 import type { Response } from "undici";
 
-export type EventProperties = {
-	/**
-	 * The CLI arguments set at the time the event is sent
-	 */
-	args?: Partial<C3Args>;
-
-	/**
-	 * The current CLI version
-	 */
-	c3Version?: string;
-
-	/**
-	 * A UUID associating events from the same session
-	 */
-	sessionId?: string;
-
-	/**
-	 * An object identifying the operating system platform and its CPU architecture
-	 */
-	os?: {
-		platform: string;
-		arch: string;
-	};
-
-	/**
-	 * The signal that triggers the cancelled event
-	 */
-	signal?: NodeJS.Signals;
-
-	error?: {
-		message: string | undefined;
-		stack: string | undefined;
-	};
-
-	/**
-	 * The argument key related to the prompt
-	 */
-	key?: string;
-
-	/**
-	 * An object containing all config passed to the prompt
-	 */
-	promptConfig?: PromptConfig;
-
-	/**
-	 *  The answer of the prompt. This could either be taken from the args provided or from the user input.
-	 */
-	answer?: unknown;
-
-	/**
-	 *  Whether the answer is the same as the default value of the prompt.
-	 */
-	isDefaultValue?: boolean;
-};
-
-export type Event =
-	| {
-			name: "c3 session started";
-			properties: Pick<
-				EventProperties,
-				"args" | "c3Version" | "sessionId" | "os"
-			>;
-	  }
-	| {
-			name: "c3 session cancelled";
-			properties: Pick<
-				EventProperties,
-				"args" | "c3Version" | "sessionId" | "os" | "signal"
-			>;
-	  }
-	| {
-			name: "c3 session errored";
-			properties: Pick<
-				EventProperties,
-				"args" | "c3Version" | "sessionId" | "os" | "error"
-			>;
-	  }
-	| {
-			name: "c3 session completed";
-			properties: Pick<
-				EventProperties,
-				"args" | "c3Version" | "sessionId" | "os"
-			>;
-	  }
-	| {
-			name: "c3 prompt started";
-			properties: Pick<
-				EventProperties,
-				"args" | "c3Version" | "sessionId" | "os" | "key" | "promptConfig"
-			>;
-	  }
-	| {
-			name: "c3 prompt cancelled";
-			properties: Pick<
-				EventProperties,
-				| "args"
-				| "c3Version"
-				| "sessionId"
-				| "os"
-				| "key"
-				| "promptConfig"
-				| "signal"
-			>;
-	  }
-	| {
-			name: "c3 prompt errored";
-			properties: Pick<
-				EventProperties,
-				| "args"
-				| "c3Version"
-				| "sessionId"
-				| "os"
-				| "key"
-				| "promptConfig"
-				| "error"
-			>;
-	  }
-	| {
-			name: "c3 prompt completed";
-			properties: Pick<
-				EventProperties,
-				| "args"
-				| "c3Version"
-				| "sessionId"
-				| "os"
-				| "key"
-				| "promptConfig"
-				| "answer"
-				| "isDefaultValue"
-			>;
-	  };
-
-type AppendMetricsDataFn = <Key extends keyof EventProperties>(
-	key: Key,
-	value: EventProperties[Key],
-) => void;
-
+// A type to extract the prefix of event names sharing the same suffix
 type EventPrefix<Suffix extends string> =
 	Event["name"] extends `${infer Name} ${Suffix}` ? Name : never;
+
+// A type to extract the properties of an event based on the name
+type EventProperties<EventName extends Event["name"]> = Extract<
+	Event,
+	{ name: EventName }
+>["properties"];
 
 // A method returns an object containing a new Promise object and two functions to resolve or reject it.
 // This can be replaced with `Promise.withResolvers()` when it is available
@@ -175,7 +44,14 @@ export function promiseWithResolvers<T>() {
 export function createReporter() {
 	const events: Array<Promise<Response> | undefined> = [];
 	const als = new AsyncLocalStorage<{
-		appendMetricsData: AppendMetricsDataFn;
+		setEventProperty: <
+			EventName extends Event["name"],
+			PropertyKey extends keyof EventProperties<EventName>,
+		>(
+			eventName: EventName,
+			key: PropertyKey,
+			value: EventProperties<EventName>[PropertyKey],
+		) => void;
 	}>();
 
 	const sessionId = getSessionId();
@@ -189,7 +65,7 @@ export function createReporter() {
 
 	function sendEvent<EventName extends Event["name"]>(
 		name: EventName,
-		properties: Extract<Event, { name: EventName }>["properties"],
+		properties: EventProperties<EventName>,
 	): void {
 		if (!telemetry.enabled) {
 			return;
@@ -203,10 +79,10 @@ export function createReporter() {
 			userId,
 			timestamp: Date.now(),
 			properties: {
+				sessionId,
+				os,
+				c3Version,
 				...properties,
-				c3Version: properties.c3Version ?? c3Version,
-				sessionId: properties.sessionId ?? sessionId,
-				os: properties.os ?? os,
 			},
 		});
 
@@ -226,29 +102,37 @@ export function createReporter() {
 		Result,
 	>(options: {
 		eventPrefix: Prefix;
-		props: EventProperties;
+		startedProps: EventProperties<`${Prefix} started`>;
+		disableTelemetry?: boolean;
 		promise: () => Promise<Result>;
 	}): Promise<Result> {
-		const startTime = Date.now();
-
+		// Create a new promise that will reject when the user interrupts the process
 		const { reject, promise: cancelPromise } = promiseWithResolvers<never>();
-		const handleSignal = (signal?: NodeJS.Signals) => {
+		const cancel = (signal?: NodeJS.Signals) => {
 			reject(new CancelError(signal));
 		};
 
+		const startTime = Date.now();
+		const additionalProperties: {
+			[key in Event["name"]]?: Partial<EventProperties<`${key}`>>;
+		} = {};
+
 		try {
-			sendEvent(`${options.eventPrefix} started`, options.props);
+			if (!options.disableTelemetry) {
+				sendEvent(`${options.eventPrefix} started`, options.startedProps);
+			}
 
 			// Attach the SIGINT and SIGTERM event listeners to handle cancellation
-			process.on("SIGINT", handleSignal).on("SIGTERM", handleSignal);
+			process.on("SIGINT", cancel).on("SIGTERM", cancel);
 
 			const result = await Promise.race([
 				als.run(
 					{
-						// This allows the promise to use the `appendMetricsData` helper to
+						// This allows the promise to use the `setEventProperty` helper to
 						// update the properties object sent to sparrow
-						appendMetricsData(key, value) {
-							options.props[key] = value;
+						setEventProperty(eventName, key, value) {
+							additionalProperties[eventName] ??= {};
+							additionalProperties[eventName][key] = value;
 						},
 					},
 					options.promise,
@@ -256,59 +140,71 @@ export function createReporter() {
 				cancelPromise,
 			]);
 
-			sendEvent(`${options.eventPrefix} completed`, {
-				...options.props,
-				durationMs: Date.now() - startTime,
-			});
+			if (!options.disableTelemetry) {
+				sendEvent(`${options.eventPrefix} completed`, {
+					...options.startedProps,
+					...additionalProperties[`${options.eventPrefix} completed`],
+					durationMs: Date.now() - startTime,
+				});
+			}
 
 			return result;
 		} catch (error) {
-			const durationMs = Date.now() - startTime;
+			if (!options.disableTelemetry) {
+				const durationMs = Date.now() - startTime;
 
-			if (error instanceof CancelError) {
-				sendEvent(`${options.eventPrefix} cancelled`, {
-					...options.props,
-					durationMs,
-				});
-			} else {
-				sendEvent(`${options.eventPrefix} errored`, {
-					...options.props,
-					durationMs,
-					error: {
-						message: error instanceof Error ? error.message : undefined,
-						stack: error instanceof Error ? error.stack : undefined,
-					},
-				});
+				if (error instanceof CancelError) {
+					sendEvent(`${options.eventPrefix} cancelled`, {
+						...options.startedProps,
+						...additionalProperties[`${options.eventPrefix} cancelled`],
+						durationMs,
+					});
+				} else {
+					sendEvent(`${options.eventPrefix} errored`, {
+						...options.startedProps,
+						...additionalProperties[`${options.eventPrefix} errored`],
+						durationMs,
+						error: {
+							message: error instanceof Error ? error.message : undefined,
+							stack: error instanceof Error ? error.stack : undefined,
+						},
+					});
+				}
 			}
 
 			// Rethrow the error so it can be caught by the caller
 			throw error;
 		} finally {
 			// Clean up the event listeners
-			process.off("SIGINT", handleSignal).off("SIGTERM", handleSignal);
+			process.off("SIGINT", cancel).off("SIGTERM", cancel);
 		}
 	}
 
 	// To be used within `collectAsyncMetrics` to update the properties object sent to sparrow
-	function appendMetricsData<Key extends keyof EventProperties>(
-		key: Key,
-		value: EventProperties[Key],
+	function setEventProperty<
+		EventName extends Event["name"],
+		PropertyKey extends keyof EventProperties<EventName>,
+	>(
+		eventName: EventName,
+		key: PropertyKey,
+		value: EventProperties<EventName>[PropertyKey],
 	) {
 		const store = als.getStore();
 
 		if (!store) {
 			throw new Error(
-				"`appendMetricsData` must be called within `collectAsyncMetrics`",
+				"`setEventProperty` must be called within `collectAsyncMetrics`",
 			);
 		}
-		return store.appendMetricsData(key, value);
+
+		return store.setEventProperty(eventName, key, value);
 	}
 
 	return {
 		sendEvent,
 		waitForAllEventsSettled,
 		collectAsyncMetrics,
-		appendMetricsData,
+		setEventProperty,
 	};
 }
 

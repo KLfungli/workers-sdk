@@ -379,40 +379,35 @@ export const processArgument = async <Key extends keyof C3Args>(
 	key: Key,
 	promptConfig: PromptConfig,
 ) => {
-	const value = args[key];
-	const process = async () => {
-		const result = await inputPrompt<Required<C3Args>[Key]>({
-			...promptConfig,
-			// Accept the default value if the arg is already set
-			acceptDefault: promptConfig.acceptDefault ?? value !== undefined,
-			defaultValue: value ?? promptConfig.defaultValue,
-		});
-
-		// Update value in args before returning the result
-		args[key] = result;
-
-		return result;
-	};
-
-	if (value !== undefined) {
-		// Skip metrics collection if the arg value is already set
-		// This can happen when the arg is set via the CLI or if the user has already answered the prompt previously
-		return await process();
-	}
-
 	return await reporter.collectAsyncMetrics({
 		eventPrefix: "c3 prompt",
-		props: {
+		startedProps: {
 			args,
 			key,
 			promptConfig,
 		},
+		// Skip metrics collection if the arg value is already set
+		// This can happen when the arg is set via the CLI or if the user has already answered the prompt previously
+		disableTelemetry: args[key] !== undefined,
 		async promise() {
-			const result = await process();
+			const value = args[key];
+			const result = await inputPrompt<Required<C3Args>[Key]>({
+				...promptConfig,
+				// Accept the default value if the arg is already set
+				acceptDefault: promptConfig.acceptDefault ?? value !== undefined,
+				defaultValue: value ?? promptConfig.defaultValue,
+			});
+
+			// Update value in args before returning the result
+			args[key] = result;
 
 			// Set properties for prompt completed event
-			reporter.appendMetricsData("answer", result);
-			reporter.appendMetricsData("isDefaultValue", result === C3_DEFAULTS[key]);
+			reporter.setEventProperty("c3 prompt completed", "answer", result);
+			reporter.setEventProperty(
+				"c3 prompt completed",
+				"isDefaultValue",
+				result === C3_DEFAULTS[key],
+			);
 
 			return result;
 		},

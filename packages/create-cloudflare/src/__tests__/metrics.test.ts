@@ -2,8 +2,10 @@ import { CancelError } from "@cloudflare/cli/error";
 import { sendEvent } from "helpers/sparrow";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { collectCLIOutput, normalizeOutput } from "../../../cli/test-util";
+import { version as c3Version } from "../../package.json";
 import {
 	getDeviceId,
+	getSessionId,
 	getUserId,
 	readMetricsConfig,
 	writeMetricsConfig,
@@ -20,6 +22,11 @@ vi.mock("helpers/sparrow");
 describe("createReporter", () => {
 	const deviceId = "test-device-id";
 	const userId = "test-user-id";
+	const sessionId = "session-id-for-test-only";
+	const os = {
+		platform: process.platform,
+		arch: process.arch,
+	};
 
 	beforeEach(() => {
 		vi.useFakeTimers();
@@ -31,6 +38,7 @@ describe("createReporter", () => {
 		});
 		vi.mocked(getDeviceId).mockReturnValue(deviceId);
 		vi.mocked(getUserId).mockReturnValue(userId);
+		vi.mocked(getSessionId).mockReturnValue(sessionId);
 	});
 
 	afterEach(() => {
@@ -43,10 +51,10 @@ describe("createReporter", () => {
 		const reporter = createReporter();
 		const process = reporter.collectAsyncMetrics({
 			eventPrefix: "c3 session",
-			props: {
-				sessionId: "example",
-				c3Version: "1.2.3",
-				os: { platform: "cf", arch: "test" },
+			startedProps: {
+				args: {
+					projectName: "app",
+				},
 			},
 			promise: () => promise,
 		});
@@ -57,9 +65,12 @@ describe("createReporter", () => {
 			userId,
 			timestamp: Date.now(),
 			properties: {
-				sessionId: "example",
-				c3Version: "1.2.3",
-				os: { platform: "cf", arch: "test" },
+				sessionId,
+				c3Version,
+				os,
+				args: {
+					projectName: "app",
+				},
 			},
 		});
 		expect(sendEvent).toBeCalledTimes(1);
@@ -76,9 +87,12 @@ describe("createReporter", () => {
 			userId,
 			timestamp: Date.now(),
 			properties: {
-				sessionId: "example",
-				c3Version: "1.2.3",
-				os: { platform: "cf", arch: "test" },
+				sessionId,
+				c3Version,
+				os,
+				args: {
+					projectName: "app",
+				},
 				durationMs: 1234,
 			},
 		});
@@ -90,10 +104,10 @@ describe("createReporter", () => {
 		const reporter = createReporter();
 		const process = reporter.collectAsyncMetrics({
 			eventPrefix: "c3 session",
-			props: {
-				sessionId: "example",
-				c3Version: "1.2.3",
-				os: { platform: "cf", arch: "test" },
+			startedProps: {
+				args: {
+					projectName: "app",
+				},
 			},
 			promise: () => promise,
 		});
@@ -104,9 +118,12 @@ describe("createReporter", () => {
 			userId,
 			timestamp: Date.now(),
 			properties: {
-				sessionId: "example",
-				c3Version: "1.2.3",
-				os: { platform: "cf", arch: "test" },
+				sessionId,
+				c3Version,
+				os,
+				args: {
+					projectName: "app",
+				},
 			},
 		});
 		expect(sendEvent).toBeCalledTimes(1);
@@ -122,9 +139,12 @@ describe("createReporter", () => {
 			userId,
 			timestamp: Date.now(),
 			properties: {
-				sessionId: "example",
-				c3Version: "1.2.3",
-				os: { platform: "cf", arch: "test" },
+				sessionId,
+				c3Version,
+				os,
+				args: {
+					projectName: "app",
+				},
 				durationMs: 1234,
 			},
 		});
@@ -136,10 +156,8 @@ describe("createReporter", () => {
 		const reporter = createReporter();
 		const process = reporter.collectAsyncMetrics({
 			eventPrefix: "c3 session",
-			props: {
-				sessionId: "example",
-				c3Version: "1.2.3",
-				os: { platform: "cf", arch: "test" },
+			startedProps: {
+				args: { projectName: "app" },
 			},
 			promise: () => promise,
 		});
@@ -150,9 +168,12 @@ describe("createReporter", () => {
 			userId,
 			timestamp: Date.now(),
 			properties: {
-				sessionId: "example",
-				c3Version: "1.2.3",
-				os: { platform: "cf", arch: "test" },
+				sessionId,
+				c3Version,
+				os,
+				args: {
+					projectName: "app",
+				},
 			},
 		});
 		expect(sendEvent).toBeCalledTimes(1);
@@ -168,9 +189,12 @@ describe("createReporter", () => {
 			userId,
 			timestamp: Date.now(),
 			properties: {
-				sessionId: "example",
-				c3Version: "1.2.3",
-				os: { platform: "cf", arch: "test" },
+				sessionId,
+				c3Version,
+				os,
+				args: {
+					projectName: "app",
+				},
 				durationMs: 1234,
 				error: {
 					message: "test error",
@@ -187,10 +211,10 @@ describe("createReporter", () => {
 
 		const run = reporter.collectAsyncMetrics({
 			eventPrefix: "c3 session",
-			props: {
-				sessionId: "example",
-				c3Version: "1.2.3",
-				os: { platform: "cf", arch: "test" },
+			startedProps: {
+				args: {
+					projectName: "app",
+				},
 			},
 			promise: () => promise,
 		});
@@ -201,9 +225,12 @@ describe("createReporter", () => {
 			userId,
 			timestamp: Date.now(),
 			properties: {
-				sessionId: "example",
-				c3Version: "1.2.3",
-				os: { platform: "cf", arch: "test" },
+				sessionId,
+				c3Version,
+				os,
+				args: {
+					projectName: "app",
+				},
 			},
 		});
 		expect(sendEvent).toBeCalledTimes(1);
@@ -219,9 +246,12 @@ describe("createReporter", () => {
 			userId,
 			timestamp: Date.now(),
 			properties: {
-				sessionId: "example",
-				c3Version: "1.2.3",
-				os: { platform: "cf", arch: "test" },
+				sessionId,
+				c3Version,
+				os,
+				args: {
+					projectName: "app",
+				},
 				durationMs: 1234,
 			},
 		});
@@ -233,10 +263,10 @@ describe("createReporter", () => {
 		const reporter = createReporter();
 		const run = reporter.collectAsyncMetrics({
 			eventPrefix: "c3 session",
-			props: {
-				sessionId: "example",
-				c3Version: "1.2.3",
-				os: { platform: "cf", arch: "test" },
+			startedProps: {
+				args: {
+					projectName: "app",
+				},
 			},
 			promise: () => promise,
 		});
@@ -247,9 +277,12 @@ describe("createReporter", () => {
 			userId,
 			timestamp: Date.now(),
 			properties: {
-				sessionId: "example",
-				c3Version: "1.2.3",
-				os: { platform: "cf", arch: "test" },
+				sessionId,
+				c3Version,
+				os,
+				args: {
+					projectName: "app",
+				},
 			},
 		});
 		expect(sendEvent).toBeCalledTimes(1);
@@ -265,9 +298,12 @@ describe("createReporter", () => {
 			userId,
 			timestamp: Date.now(),
 			properties: {
-				sessionId: "example",
-				c3Version: "1.2.3",
-				os: { platform: "cf", arch: "test" },
+				sessionId,
+				c3Version,
+				os,
+				args: {
+					projectName: "app",
+				},
 				durationMs: 1234,
 			},
 		});
