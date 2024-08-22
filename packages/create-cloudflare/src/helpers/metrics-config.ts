@@ -1,4 +1,10 @@
-// Copied from packages/wrangler/src/metrics/metrics-config.ts
+// Copied from packages/wrangler/src/metrics/metrics-config.ts with the following changes:
+// - Removed methods not required for c3
+// - Added `c3permission` property to the `MetricsConfigFile` interface
+// - Added a `getSessionId` helper that returns a random UUID
+// - Exported both `getDeviceId` and `getUserId` helpers
+// - Modified `getUserId` to return the id from the cache only without fetching it from the API
+
 import { randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -67,10 +73,8 @@ export interface MetricsConfigFile {
  * Returns an ID that uniquely identifies Wrangler on this device to help collate events.
  *
  * Once created this ID is stored in the metrics config file.
- * Note: This is modified to read the config directly.
  */
-export function getDeviceId() {
-	const config = readMetricsConfig();
+export function getDeviceId(config: MetricsConfigFile) {
 	// Get or create the deviceId.
 	const deviceId = config.deviceId ?? randomUUID();
 	if (config.deviceId === undefined) {
@@ -82,9 +86,6 @@ export function getDeviceId() {
 
 /**
  * Returns the ID of the current user, which will be sent with each event.
- *
- * Note: This is modified to look up the id from the cache only
- * as we have no access to user auth token to fetch the data.
  */
 export function getUserId() {
 	return getConfigCache<{ userId: string }>(USER_ID_CACHE_PATH).userId;
@@ -92,7 +93,6 @@ export function getUserId() {
 
 /**
  * Generate a new session ID.
- * @returns
  */
 export function getSessionId() {
 	return randomUUID();

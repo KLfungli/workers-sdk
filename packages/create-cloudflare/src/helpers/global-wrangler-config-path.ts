@@ -1,4 +1,4 @@
-// Copied from packages/wrangler/src/global-wrangler-config-path.ts
+// Copied from packages/wrangler/src/global-wrangler-config-path.ts with no modification
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";

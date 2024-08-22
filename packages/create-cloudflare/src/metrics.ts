@@ -178,9 +178,10 @@ export function createReporter() {
 		appendMetricsData: AppendMetricsDataFn;
 	}>();
 
-	const telemetry = getC3Permission();
 	const sessionId = getSessionId();
-	const deviceId = getDeviceId();
+	const config = readMetricsConfig();
+	const telemetry = getC3Permission(config);
+	const deviceId = getDeviceId(config);
 	const os = {
 		platform: process.platform,
 		arch: process.arch,
@@ -223,7 +224,7 @@ export function createReporter() {
 			"started" | "cancelled" | "errored" | "completed"
 		>,
 		Result,
-	>(config: {
+	>(options: {
 		eventPrefix: Prefix;
 		props: EventProperties;
 		promise: () => Promise<Result>;
@@ -236,7 +237,7 @@ export function createReporter() {
 		};
 
 		try {
-			sendEvent(`${config.eventPrefix} started`, config.props);
+			sendEvent(`${options.eventPrefix} started`, options.props);
 
 			// Attach the SIGINT and SIGTERM event listeners to handle cancellation
 			process.on("SIGINT", handleSignal).on("SIGTERM", handleSignal);
@@ -247,16 +248,16 @@ export function createReporter() {
 						// This allows the promise to use the `appendMetricsData` helper to
 						// update the properties object sent to sparrow
 						appendMetricsData(key, value) {
-							config.props[key] = value;
+							options.props[key] = value;
 						},
 					},
-					config.promise,
+					options.promise,
 				),
 				cancelPromise,
 			]);
 
-			sendEvent(`${config.eventPrefix} completed`, {
-				...config.props,
+			sendEvent(`${options.eventPrefix} completed`, {
+				...options.props,
 				durationMs: Date.now() - startTime,
 			});
 
@@ -265,13 +266,13 @@ export function createReporter() {
 			const durationMs = Date.now() - startTime;
 
 			if (error instanceof CancelError) {
-				sendEvent(`${config.eventPrefix} cancelled`, {
-					...config.props,
+				sendEvent(`${options.eventPrefix} cancelled`, {
+					...options.props,
 					durationMs,
 				});
 			} else {
-				sendEvent(`${config.eventPrefix} errored`, {
-					...config.props,
+				sendEvent(`${options.eventPrefix} errored`, {
+					...options.props,
 					durationMs,
 					error: {
 						message: error instanceof Error ? error.message : undefined,
@@ -320,9 +321,7 @@ export function initializeC3Permission(enabled = true) {
 	};
 }
 
-export function getC3Permission() {
-	const config = readMetricsConfig() ?? {};
-
+export function getC3Permission(config = readMetricsConfig() ?? {}) {
 	if (!config.c3permission) {
 		config.c3permission = initializeC3Permission();
 

@@ -1,4 +1,7 @@
-// Copied from packages/wrangler/src/config-cache.ts
+// Copied from packages/wrangler/src/config-cache.ts with the following changes:
+// - Removed methods not required for c3
+// - Commented out the debug message as it breaks the command line interface
+
 import { readFileSync } from "node:fs";
 import * as path from "node:path";
 import { findUpSync } from "find-up";
@@ -16,7 +19,7 @@ function getCacheFolder() {
 		? path.join(closestNodeModulesDirectory, ".cache/wrangler")
 		: null;
 	if (!__cacheFolder) {
-		// console.debug("No folder available to cache configuration");
+		// logger.debug("No folder available to cache configuration");
 	}
 	return __cacheFolder;
 }
