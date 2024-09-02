@@ -342,6 +342,20 @@ interface EnvironmentInheritable {
 	 * @inheritable
 	 */
 	experimental_assets: ExperimentalAssets | undefined;
+
+	/**
+	 * Specifiy whether to use dotenv to load environment variables
+	 *
+	 * @inheritable
+	 */
+	dotenv: boolean | undefined;
+
+	/**
+	 * Specify the path to a .env file to load environment variables from
+	 *
+	 * @inheritable
+	 */
+	env_file: string | undefined;
 }
 
 export type DurableObjectBindings = {

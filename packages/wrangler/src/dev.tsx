@@ -10,7 +10,12 @@ import {
 	convertCfWorkerInitBindingstoBindings,
 	extractBindingsOfType,
 } from "./api/startDevWorker/utils";
-import { findWranglerToml, printBindings, readConfig } from "./config";
+import {
+	findWranglerToml,
+	loadProcessDotEnv,
+	printBindings,
+	readConfig,
+} from "./config";
 import { getEntry } from "./deployment-bundle/entry";
 import { getNodeCompatMode } from "./deployment-bundle/node-compat";
 import { getBoundRegisteredWorkers } from "./dev-registry";
@@ -235,6 +240,21 @@ export function devOptions(yargs: CommonYargsArgv) {
 			})
 			.option("alias", {
 				describe: "A module pair to be substituted in the script",
+				type: "string",
+				requiresArg: true,
+				array: true,
+			})
+			.option("dotenv", {
+				describe: "Populate process.env/import.meta.env with values from .env",
+				type: "boolean",
+			})
+			.option("env-file", {
+				describe: "Path to a file to populate process.env/import.meta.env",
+				type: "string",
+				requiresArg: true,
+			})
+			.option("penv", {
+				describe: "Set a value on process.env/import.meta.env",
 				type: "string",
 				requiresArg: true,
 				array: true,
@@ -617,6 +637,14 @@ export async function startDev(args: StartDevOptions) {
 			);
 		}
 
+		// populate process.env values from .env file and/or --penv cli args
+		const processEnvValues = loadProcessDotEnv({
+			readEnvFile: args.dotenv ?? config.dotenv,
+			path: args.envFile ?? config.env_file ?? ".env",
+			env: args.env,
+			keys: args.penv,
+		}).parsed;
+
 		const projectRoot = configPath && path.dirname(configPath);
 
 		const devEnv = new DevEnv();
@@ -683,6 +711,7 @@ export async function startDev(args: StartDevOptions) {
 				build: {
 					bundle: args.bundle !== undefined ? args.bundle : undefined,
 					define: collectKeyValues(args.define),
+					processEnvValues,
 					jsxFactory: args.jsxFactory,
 					jsxFragment: args.jsxFragment,
 					tsconfig: args.tsconfig,
@@ -930,7 +959,7 @@ export async function startDev(args: StartDevOptions) {
 					minify={args.minify ?? configParam.minify}
 					nodejsCompatMode={nodejsCompatMode}
 					build={configParam.build || {}}
-					define={{ ...configParam.define, ...cliDefines }}
+					define={{ ...processEnvValues, ...configParam.define, ...cliDefines }}
 					alias={{ ...configParam.alias, ...cliAlias }}
 					initialMode={args.remote ? "remote" : "local"}
 					jsxFactory={args.jsxFactory || configParam.jsx_factory}

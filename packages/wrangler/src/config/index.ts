@@ -580,3 +580,56 @@ export function loadDotEnv(path: string, env?: string): DotEnv | undefined {
 		return tryLoadDotEnv(`${path}.${env}`) ?? tryLoadDotEnv(path);
 	}
 }
+
+/**
+ * Loads a dotenv file from <path>, preferring to read <path>.<environment> if
+ * <environment> is defined and that file exists.
+ *
+ * This function is used to load the .env file into the process.env and import.meta.env variables.
+ */
+export function loadProcessDotEnv({
+	readEnvFile,
+	path,
+	env,
+	keys,
+}: {
+	readEnvFile: boolean | undefined;
+	path: string;
+	env?: string;
+	keys?: string[];
+}): DotEnv {
+	let processEnvValues = readEnvFile ? loadDotEnv(path, env)?.parsed ?? {} : {};
+	// add a process.env prefix to every key, and wrap value with quotes,
+	// to every key value pair in processEnvValues
+	processEnvValues = Object.entries(processEnvValues).reduce(
+		(acc, [key, value]) => {
+			if (/^[a-zA-Z0-9_]+$/.test(key)) {
+				acc[`process.env.${key}`] = JSON.stringify(value);
+				acc[`import.meta.env.${key}`] = JSON.stringify(value);
+			} else {
+				acc[`process.env["${key}"]`] = JSON.stringify(value);
+				acc[`import.meta.env["${key}"]`] = JSON.stringify(value);
+			}
+			return acc;
+		},
+		{} as Record<string, string>
+	);
+
+	for (const penv of keys ?? []) {
+		const hasValue = penv.includes("=");
+		const key = hasValue ? penv.split("=")[0] : penv;
+		const value = hasValue ? penv.split("=")[1] : process.env[key];
+		if (value || key in process.env) {
+			processEnvValues[`process.env.${key}`] = JSON.stringify(
+				value ?? process.env[key]
+			);
+			processEnvValues[`import.meta.env.${key}`] = JSON.stringify(
+				value ?? process.env[key]
+			);
+		}
+	}
+	return {
+		path,
+		parsed: processEnvValues,
+	};
+}
