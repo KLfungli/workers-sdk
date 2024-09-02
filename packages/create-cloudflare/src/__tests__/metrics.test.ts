@@ -1,5 +1,5 @@
 import { CancelError } from "@cloudflare/cli/error";
-import { sendEvent } from "helpers/sparrow";
+import { hasSparrowSourceKey, sendEvent } from "helpers/sparrow";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { collectCLIOutput, normalizeOutput } from "../../../cli/test-util";
 import { version as c3Version } from "../../package.json";
@@ -39,6 +39,7 @@ describe("createReporter", () => {
 		vi.mocked(getDeviceId).mockReturnValue(deviceId);
 		vi.mocked(getUserId).mockReturnValue(userId);
 		vi.mocked(getSessionId).mockReturnValue(sessionId);
+		vi.mocked(hasSparrowSourceKey).mockReturnValue(true);
 	});
 
 	afterEach(() => {
@@ -47,16 +48,16 @@ describe("createReporter", () => {
 	});
 
 	test("sends started and completed event to sparrow if the promise resolves", async () => {
-		const { resolve, promise } = promiseWithResolvers<string>();
+		const deferred = promiseWithResolvers<string>();
 		const reporter = createReporter();
-		const process = reporter.collectAsyncMetrics({
+		const operation = reporter.collectAsyncMetrics({
 			eventPrefix: "c3 session",
 			startedProps: {
 				args: {
 					projectName: "app",
 				},
 			},
-			promise: () => promise,
+			promise: () => deferred.promise,
 		});
 
 		expect(sendEvent).toBeCalledWith({
@@ -75,11 +76,11 @@ describe("createReporter", () => {
 		});
 		expect(sendEvent).toBeCalledTimes(1);
 
-		resolve("test result");
+		deferred.resolve("test result");
 
 		vi.advanceTimersByTime(1234);
 
-		await expect(process).resolves.toBe("test result");
+		await expect(operation).resolves.toBe("test result");
 
 		expect(sendEvent).toBeCalledWith({
 			event: "c3 session completed",
@@ -99,17 +100,40 @@ describe("createReporter", () => {
 		expect(sendEvent).toBeCalledTimes(2);
 	});
 
-	test("sends started and cancelled event to sparrow if the promise reject with a CancelError", async () => {
-		const { reject, promise } = promiseWithResolvers<string>();
+	test("sends no event if no sparrow source key", async () => {
+		vi.mocked(hasSparrowSourceKey).mockReturnValue(false);
+
+		const deferred = promiseWithResolvers<string>();
 		const reporter = createReporter();
-		const process = reporter.collectAsyncMetrics({
+		const operation = reporter.collectAsyncMetrics({
 			eventPrefix: "c3 session",
 			startedProps: {
 				args: {
 					projectName: "app",
 				},
 			},
-			promise: () => promise,
+			promise: () => deferred.promise,
+		});
+
+		expect(sendEvent).toBeCalledTimes(0);
+
+		deferred.resolve("test result");
+
+		await expect(operation).resolves.toBe("test result");
+		expect(sendEvent).toBeCalledTimes(0);
+	});
+
+	test("sends started and cancelled event to sparrow if the promise reject with a CancelError", async () => {
+		const deferred = promiseWithResolvers<string>();
+		const reporter = createReporter();
+		const operation = reporter.collectAsyncMetrics({
+			eventPrefix: "c3 session",
+			startedProps: {
+				args: {
+					projectName: "app",
+				},
+			},
+			promise: () => deferred.promise,
 		});
 
 		expect(sendEvent).toBeCalledWith({
@@ -128,10 +152,10 @@ describe("createReporter", () => {
 		});
 		expect(sendEvent).toBeCalledTimes(1);
 
-		reject(new CancelError("test cancel"));
+		deferred.reject(new CancelError("test cancel"));
 		vi.advanceTimersByTime(1234);
 
-		await expect(process).rejects.toThrow(CancelError);
+		await expect(operation).rejects.toThrow(CancelError);
 
 		expect(sendEvent).toBeCalledWith({
 			event: "c3 session cancelled",
@@ -152,14 +176,14 @@ describe("createReporter", () => {
 	});
 
 	test("sends started and errored event to sparrow if the promise reject with a non CancelError", async () => {
-		const { reject, promise } = promiseWithResolvers<string>();
+		const deferred = promiseWithResolvers<string>();
 		const reporter = createReporter();
 		const process = reporter.collectAsyncMetrics({
 			eventPrefix: "c3 session",
 			startedProps: {
 				args: { projectName: "app" },
 			},
-			promise: () => promise,
+			promise: () => deferred.promise,
 		});
 
 		expect(sendEvent).toBeCalledWith({
@@ -178,7 +202,7 @@ describe("createReporter", () => {
 		});
 		expect(sendEvent).toBeCalledTimes(1);
 
-		reject(new Error("test error"));
+		deferred.reject(new Error("test error"));
 		vi.advanceTimersByTime(1234);
 
 		await expect(process).rejects.toThrow(Error);
@@ -206,7 +230,7 @@ describe("createReporter", () => {
 	});
 
 	test("sends cancelled event if a SIGINT signal is recieved", async () => {
-		const { promise } = promiseWithResolvers<string>();
+		const deferred = promiseWithResolvers<string>();
 		const reporter = createReporter();
 
 		const run = reporter.collectAsyncMetrics({
@@ -216,7 +240,7 @@ describe("createReporter", () => {
 					projectName: "app",
 				},
 			},
-			promise: () => promise,
+			promise: () => deferred.promise,
 		});
 
 		expect(sendEvent).toBeCalledWith({
@@ -259,7 +283,7 @@ describe("createReporter", () => {
 	});
 
 	test("sends cancelled event if a SIGTERM signal is recieved", async () => {
-		const { promise } = promiseWithResolvers<string>();
+		const deferred = promiseWithResolvers<string>();
 		const reporter = createReporter();
 		const run = reporter.collectAsyncMetrics({
 			eventPrefix: "c3 session",
@@ -268,7 +292,7 @@ describe("createReporter", () => {
 					projectName: "app",
 				},
 			},
-			promise: () => promise,
+			promise: () => deferred.promise,
 		});
 
 		expect(sendEvent).toBeCalledWith({
