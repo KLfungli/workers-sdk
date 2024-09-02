@@ -11,7 +11,6 @@ import {
 import * as sparrow from "helpers/sparrow";
 import { version as c3Version } from "../package.json";
 import type { Event } from "./event";
-import type { Response } from "undici";
 
 // A type to extract the prefix of event names sharing the same suffix
 type EventPrefix<Suffix extends string> =
@@ -42,7 +41,7 @@ export function promiseWithResolvers<T>() {
 }
 
 export function createReporter() {
-	const events: Array<Promise<Response> | undefined> = [];
+	const events: Array<Promise<void>> = [];
 	const als = new AsyncLocalStorage<{
 		setEventProperty: <
 			EventName extends Event["name"],
@@ -67,13 +66,13 @@ export function createReporter() {
 		name: EventName,
 		properties: EventProperties<EventName>,
 	): void {
-		if (!telemetry.enabled) {
+		if (!telemetry.enabled || !sparrow.hasSparrowSourceKey()) {
 			return;
 		}
 
 		// Get the latest userId everytime in case it is updated
 		const userId = getUserId();
-		const response = sparrow.sendEvent({
+		const request = sparrow.sendEvent({
 			event: name,
 			deviceId,
 			userId,
@@ -86,7 +85,7 @@ export function createReporter() {
 			},
 		});
 
-		events.push(response);
+		events.push(request);
 	}
 
 	async function waitForAllEventsSettled(): Promise<void> {
@@ -107,9 +106,9 @@ export function createReporter() {
 		promise: () => Promise<Result>;
 	}): Promise<Result> {
 		// Create a new promise that will reject when the user interrupts the process
-		const { reject, promise: cancelPromise } = promiseWithResolvers<never>();
+		const cancelDeferred = promiseWithResolvers<never>();
 		const cancel = (signal?: NodeJS.Signals) => {
-			reject(new CancelError(signal));
+			cancelDeferred.reject(new CancelError(`Operation cancelled.`, signal));
 		};
 
 		const startTime = Date.now();
@@ -137,7 +136,7 @@ export function createReporter() {
 					},
 					options.promise,
 				),
-				cancelPromise,
+				cancelDeferred.promise,
 			]);
 
 			if (!options.disableTelemetry) {
@@ -149,11 +148,11 @@ export function createReporter() {
 			}
 
 			return result;
-		} catch (error) {
+		} catch (e) {
 			if (!options.disableTelemetry) {
 				const durationMs = Date.now() - startTime;
 
-				if (error instanceof CancelError) {
+				if (e instanceof CancelError) {
 					sendEvent(`${options.eventPrefix} cancelled`, {
 						...options.startedProps,
 						...additionalProperties[`${options.eventPrefix} cancelled`],
@@ -165,15 +164,15 @@ export function createReporter() {
 						...additionalProperties[`${options.eventPrefix} errored`],
 						durationMs,
 						error: {
-							message: error instanceof Error ? error.message : undefined,
-							stack: error instanceof Error ? error.stack : undefined,
+							message: e instanceof Error ? e.message : undefined,
+							stack: e instanceof Error ? e.stack : undefined,
 						},
 					});
 				}
 			}
 
 			// Rethrow the error so it can be caught by the caller
-			throw error;
+			throw e;
 		} finally {
 			// Clean up the event listeners
 			process.off("SIGINT", cancel).off("SIGTERM", cancel);
@@ -208,6 +207,7 @@ export function createReporter() {
 	};
 }
 
+// A singleton instance of the reporter that can be imported and used across the codebase
 export const reporter = createReporter();
 
 export function initializeC3Permission(enabled = true) {

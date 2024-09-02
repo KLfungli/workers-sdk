@@ -17,14 +17,12 @@ export function hasSparrowSourceKey() {
 	return SPARROW_SOURCE_KEY !== "";
 }
 
-export function sendEvent(payload: EventPayload) {
+export async function sendEvent(payload: EventPayload) {
 	if (!SPARROW_SOURCE_KEY) {
 		return;
 	}
 
-	console.log("Sparrow event", JSON.stringify(payload, null, 2));
-
-	return fetch(`${SPARROW_URL}/api/v1/event`, {
+	await fetch(`${SPARROW_URL}/api/v1/event`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",

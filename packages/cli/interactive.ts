@@ -7,7 +7,7 @@ import {
 } from "@clack/core";
 import { createLogUpdate } from "log-update";
 import { blue, bold, brandColor, dim, gray, white } from "./colors";
-import { CancelError, FatalError } from "./error";
+import { CancelError } from "./error";
 import SelectRefreshablePrompt from "./select-list";
 import { stdout } from "./streams";
 import {
@@ -112,7 +112,7 @@ function acceptDefault<T>(
 	const error = promptConfig.validate?.(initialValue as Arg);
 	if (error) {
 		if (promptConfig.throwOnError) {
-			throw new FatalError(error);
+			throw new Error(error);
 		} else {
 			crash(error);
 		}

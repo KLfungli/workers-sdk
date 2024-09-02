@@ -11,7 +11,6 @@ import {
 } from "@cloudflare/cli";
 import { CancelError } from "@cloudflare/cli/error";
 import { isInteractive } from "@cloudflare/cli/interactive";
-import { asyncExitHook, gracefulExit } from "exit-hook";
 import { cliDefinition, parseArgs } from "helpers/args";
 import { isUpdateAvailable } from "helpers/cli";
 import { runCommand } from "helpers/command";
@@ -43,8 +42,6 @@ import type { C3Args, C3Context } from "types";
 
 const { npm } = detectPackageManager();
 
-asyncExitHook(reporter.waitForAllEventsSettled, { wait: 500 });
-
 export const main = async (argv: string[]) => {
 	const result = await parseArgs(argv);
 
@@ -57,7 +54,9 @@ export const main = async (argv: string[]) => {
 			console.warn(`\n${result.additionalMessage}`);
 		}
 
-		gracefulExit(result.exitCode ?? 0);
+		if (result.exitCode) {
+			process.exit(result.exitCode);
+		}
 		return;
 	}
 
@@ -198,10 +197,14 @@ const printBanner = () => {
 	startSection(`Create an application with Cloudflare`, "Step 1 of 3");
 };
 
-main(process.argv).catch((e) => {
-	if (e instanceof CancelError) {
-		cancel(e.message);
-	} else {
-		crash(e);
-	}
-});
+main(process.argv)
+	.catch((e) => {
+		if (e instanceof CancelError) {
+			cancel(e.message);
+		} else {
+			crash(e);
+		}
+	})
+	.finally(async () => {
+		await reporter.waitForAllEventsSettled();
+	});
