@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import { nextTick } from "node:process";
+import { setTimeout } from "node:timers/promises";
 import { logRaw } from "@cloudflare/cli";
 import { CancelError } from "@cloudflare/cli/error";
 import {
@@ -108,10 +108,11 @@ export function createReporter() {
 	}): Promise<Result> {
 		// Create a new promise that will reject when the user interrupts the process
 		const cancelDeferred = promiseWithResolvers<never>();
-		const cancel = (signal?: NodeJS.Signals) => {
-			nextTick(() => {
-				cancelDeferred.reject(new CancelError(`Operation cancelled.`, signal));
-			});
+		const cancel = async (signal?: NodeJS.Signals) => {
+			// Let subtasks handles the signals first with a short timeout
+			await setTimeout(10);
+
+			cancelDeferred.reject(new CancelError(`Operation cancelled`, signal));
 		};
 
 		const startTime = Date.now();

@@ -234,9 +234,9 @@ export const inputPrompt = async <T = string>(
 
 	if (isCancel(input)) {
 		if (promptConfig.throwOnError) {
-			throw new CancelError("Operation cancelled.");
+			throw new CancelError("Operation cancelled");
 		} else {
-			cancel("Operation cancelled.");
+			cancel("Operation cancelled");
 			process.exit(0);
 		}
 	}

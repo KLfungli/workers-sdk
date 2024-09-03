@@ -1,4 +1,5 @@
 import { stripAnsi } from "@cloudflare/cli";
+import { CancelError } from "@cloudflare/cli/error";
 import { isInteractive, spinner } from "@cloudflare/cli/interactive";
 import { spawn } from "cross-spawn";
 
@@ -75,13 +76,21 @@ export const runCommand = async (
 				});
 			}
 
-			const abort = (signal?: NodeJS.Signals) => {
-				abortController.abort(signal ? `${signal} received` : null);
-			};
-
-			process.on("SIGTERM", abort).on("SIGINT", abort);
+			let cleanup: (() => void) | null = null;
 
 			return new Promise<string>((resolvePromise, reject) => {
+				const cancel = (signal?: NodeJS.Signals) => {
+					reject(new CancelError(`Command cancelled`, signal));
+					abortController.abort(signal ? `${signal} received` : null);
+				};
+
+				process.on("SIGTERM", cancel).on("SIGINT", cancel);
+
+				// To cleanup the signal listeners when the promise settles
+				cleanup = () => {
+					process.off("SIGTERM", cancel).off("SIGINT", cancel);
+				};
+
 				cmd.on("close", (code) => {
 					try {
 						if (code !== 0) {
@@ -106,7 +115,7 @@ export const runCommand = async (
 					reject(error);
 				});
 			}).finally(() => {
-				process.off("SIGTERM", abort).off("SIGINT", abort);
+				cleanup?.();
 			});
 		},
 	});
