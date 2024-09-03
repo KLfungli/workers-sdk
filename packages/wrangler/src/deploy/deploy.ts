@@ -168,6 +168,60 @@ function errIsStartupErr(err: unknown): err is ParseError & { code: 10021 } {
 	return false;
 }
 
+export const validateRoutes = (
+	routes: Route[],
+	hasExperimentalAssets: boolean
+) => {
+	const invalidRoutes: { [route: string]: string[] } = {};
+	for (const route of routes) {
+		if (typeof route !== "string" && route.custom_domain) {
+			if (route.pattern.includes("*")) {
+				invalidRoutes[route.pattern] = [
+					...(invalidRoutes[route.pattern] ?? []),
+					`Wildcard operators (*) are not allowed in Custom Domains`,
+				];
+			}
+			if (route.pattern.includes("/")) {
+				invalidRoutes[route.pattern] = [
+					...(invalidRoutes[route.pattern] ?? []),
+					`Paths are not allowed in Custom Domains`,
+				];
+			}
+		} else {
+			if (
+				typeof route === "string" &&
+				hasExperimentalAssets &&
+				route.includes("/") &&
+				!route.endsWith("/*")
+			) {
+				invalidRoutes[route] = [
+					...(invalidRoutes[route] ?? []),
+					`Routes with paths (except for the wildcard /*) are not allowed in Workers + Assets projects`,
+				];
+			}
+			if (
+				typeof route === "object" &&
+				hasExperimentalAssets &&
+				route.pattern.includes("/") &&
+				!route.pattern.endsWith("/*")
+			) {
+				invalidRoutes[route.pattern] = [
+					...(invalidRoutes[route.pattern] ?? []),
+					`Routes with paths (except for the wildcard /*) are not allowed in Workers + Assets projects`,
+				];
+			}
+		}
+	}
+	if (Object.keys(invalidRoutes).length > 0) {
+		throw new UserError(
+			`Invalid Routes:\n` +
+				Object.entries(invalidRoutes)
+					.map(([route, errors]) => `${route}:\n` + errors.join("\n"))
+					.join(`\n\n`)
+		);
+	}
+};
+
 export function renderRoute(route: Route): string {
 	let result = "";
 	if (typeof route === "string") {
@@ -380,20 +434,7 @@ See https://developers.cloudflare.com/workers/platform/compatibility-dates for m
 
 	const routes =
 		props.routes ?? config.routes ?? (config.route ? [config.route] : []) ?? [];
-	for (const route of routes) {
-		if (typeof route !== "string" && route.custom_domain) {
-			if (route.pattern.includes("*")) {
-				throw new UserError(
-					`Cannot use "${route.pattern}" as a Custom Domain; wildcard operators (*) are not allowed`
-				);
-			}
-			if (route.pattern.includes("/")) {
-				throw new UserError(
-					`Cannot use "${route.pattern}" as a Custom Domain; paths are not allowed`
-				);
-			}
-		}
-	}
+	validateRoutes(routes, Boolean(props.experimentalAssetsOptions));
 
 	const jsxFactory = props.jsxFactory || config.jsx_factory;
 	const jsxFragment = props.jsxFragment || config.jsx_fragment;
