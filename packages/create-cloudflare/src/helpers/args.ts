@@ -402,12 +402,8 @@ export const processArgument = async <Key extends keyof C3Args>(
 			args[key] = result;
 
 			// Set properties for prompt completed event
-			reporter.setEventProperty("c3 prompt completed", "answer", result);
-			reporter.setEventProperty(
-				"c3 prompt completed",
-				"isDefaultValue",
-				result === C3_DEFAULTS[key],
-			);
+			reporter.setEventProperty("answer", result);
+			reporter.setEventProperty("isDefaultValue", result === C3_DEFAULTS[key]);
 
 			return result;
 		},

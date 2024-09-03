@@ -44,14 +44,7 @@ export function promiseWithResolvers<T>() {
 export function createReporter() {
 	const events: Array<Promise<void>> = [];
 	const als = new AsyncLocalStorage<{
-		setEventProperty: <
-			EventName extends Event["name"],
-			PropertyKey extends keyof EventProperties<EventName>,
-		>(
-			eventName: EventName,
-			key: PropertyKey,
-			value: EventProperties<EventName>[PropertyKey],
-		) => void;
+		setEventProperty: (key: string, value: unknown) => void;
 	}>();
 
 	const sessionId = getSessionId();
@@ -86,6 +79,9 @@ export function createReporter() {
 			},
 		});
 
+		// TODO(consider): retry failed requests
+		// TODO(consider): add a timeout to avoid the process staying alive for too long
+
 		events.push(request);
 	}
 
@@ -116,9 +112,7 @@ export function createReporter() {
 		};
 
 		const startTime = Date.now();
-		const additionalProperties: {
-			[key in Event["name"]]?: Partial<EventProperties<`${key}`>>;
-		} = {};
+		const additionalProperties: Record<string, unknown> = {};
 
 		try {
 			if (!options.disableTelemetry) {
@@ -133,9 +127,8 @@ export function createReporter() {
 					{
 						// This allows the promise to use the `setEventProperty` helper to
 						// update the properties object sent to sparrow
-						setEventProperty(eventName, key, value) {
-							additionalProperties[eventName] ??= {};
-							additionalProperties[eventName][key] = value;
+						setEventProperty(key, value) {
+							additionalProperties[key] = value;
 						},
 					},
 					options.promise,
@@ -146,7 +139,7 @@ export function createReporter() {
 			if (!options.disableTelemetry) {
 				sendEvent(`${options.eventPrefix} completed`, {
 					...options.startedProps,
-					...additionalProperties[`${options.eventPrefix} completed`],
+					...additionalProperties,
 					durationMs: Date.now() - startTime,
 				});
 			}
@@ -159,13 +152,13 @@ export function createReporter() {
 				if (e instanceof CancelError) {
 					sendEvent(`${options.eventPrefix} cancelled`, {
 						...options.startedProps,
-						...additionalProperties[`${options.eventPrefix} cancelled`],
+						...additionalProperties,
 						durationMs,
 					});
 				} else {
 					sendEvent(`${options.eventPrefix} errored`, {
 						...options.startedProps,
-						...additionalProperties[`${options.eventPrefix} errored`],
+						...additionalProperties,
 						durationMs,
 						error: {
 							message: e instanceof Error ? e.message : undefined,
@@ -184,14 +177,7 @@ export function createReporter() {
 	}
 
 	// To be used within `collectAsyncMetrics` to update the properties object sent to sparrow
-	function setEventProperty<
-		EventName extends Event["name"],
-		PropertyKey extends keyof EventProperties<EventName>,
-	>(
-		eventName: EventName,
-		key: PropertyKey,
-		value: EventProperties<EventName>[PropertyKey],
-	) {
+	function setEventProperty(key: string, value: unknown) {
 		const store = als.getStore();
 
 		if (!store) {
@@ -200,7 +186,7 @@ export function createReporter() {
 			);
 		}
 
-		return store.setEventProperty(eventName, key, value);
+		return store.setEventProperty(key, value);
 	}
 
 	return {
