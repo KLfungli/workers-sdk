@@ -51,7 +51,7 @@ export const runCommand = async (
 		doneText: opts.doneText,
 		promise() {
 			const [executable, ...args] = command;
-
+			const abortController = new AbortController();
 			const cmd = spawn(executable, [...args], {
 				// TODO: ideally inherit stderr, but npm install uses this for warnings
 				// stdio: [ioMode, ioMode, "inherit"],
@@ -61,6 +61,7 @@ export const runCommand = async (
 					...opts.env,
 				},
 				cwd: opts.cwd,
+				signal: abortController.signal,
 			});
 
 			let output = ``;
@@ -73,6 +74,12 @@ export const runCommand = async (
 					output += data;
 				});
 			}
+
+			const abort = (signal?: NodeJS.Signals) => {
+				abortController.abort(signal ? `${signal} received` : null);
+			};
+
+			process.on("SIGTERM", abort).on("SIGINT", abort);
 
 			return new Promise<string>((resolvePromise, reject) => {
 				cmd.on("close", (code) => {
@@ -95,9 +102,11 @@ export const runCommand = async (
 					}
 				});
 
-				cmd.on("error", (code) => {
-					reject(code);
+				cmd.on("error", (error) => {
+					reject(error);
 				});
+			}).finally(() => {
+				process.off("SIGTERM", abort).off("SIGINT", abort);
 			});
 		},
 	});
