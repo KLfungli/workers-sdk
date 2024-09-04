@@ -1,7 +1,6 @@
 // Copied from packages/wrangler/src/metrics/metrics-config.ts with the following changes:
 // - Removed methods not required for c3
 // - Added `c3permission` property to the `MetricsConfigFile` interface
-// - Added a `getSessionId` helper that returns a random UUID
 // - Exported both `getDeviceId` and `getUserId` helpers
 // - Modified `getUserId` to return the id from the cache only without fetching it from the API
 
@@ -89,11 +88,4 @@ export function getDeviceId(config: MetricsConfigFile) {
  */
 export function getUserId() {
 	return getConfigCache<{ userId: string }>(USER_ID_CACHE_PATH).userId;
-}
-
-/**
- * Generate a new session ID.
- */
-export function getSessionId() {
-	return randomUUID();
 }

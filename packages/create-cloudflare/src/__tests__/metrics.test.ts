@@ -5,7 +5,6 @@ import { collectCLIOutput, normalizeOutput } from "../../../cli/test-util";
 import { version as c3Version } from "../../package.json";
 import {
 	getDeviceId,
-	getSessionId,
 	getUserId,
 	readMetricsConfig,
 	writeMetricsConfig,
@@ -20,16 +19,13 @@ vi.mock("helpers/metrics-config");
 vi.mock("helpers/sparrow");
 
 describe("createReporter", () => {
+	const now = 987654321;
 	const deviceId = "test-device-id";
 	const userId = "test-user-id";
-	const sessionId = "session-id-for-test-only";
-	const os = {
-		platform: process.platform,
-		arch: process.arch,
-	};
+	const os = process.platform + ":" + process.arch;
 
 	beforeEach(() => {
-		vi.useFakeTimers();
+		vi.useFakeTimers({ now });
 		vi.mocked(readMetricsConfig).mockReturnValue({
 			c3permission: {
 				enabled: true,
@@ -38,7 +34,6 @@ describe("createReporter", () => {
 		});
 		vi.mocked(getDeviceId).mockReturnValue(deviceId);
 		vi.mocked(getUserId).mockReturnValue(userId);
-		vi.mocked(getSessionId).mockReturnValue(sessionId);
 		vi.mocked(hasSparrowSourceKey).mockReturnValue(true);
 	});
 
@@ -64,11 +59,12 @@ describe("createReporter", () => {
 			event: "c3 session started",
 			deviceId,
 			userId,
-			timestamp: Date.now(),
+			timestamp: now,
 			properties: {
-				sessionId,
 				c3Version,
 				os,
+				amplitude_session_id: now,
+				amplitude_event_id: 0,
 				args: {
 					projectName: "app",
 				},
@@ -86,11 +82,12 @@ describe("createReporter", () => {
 			event: "c3 session completed",
 			deviceId,
 			userId,
-			timestamp: Date.now(),
+			timestamp: now + 1234,
 			properties: {
-				sessionId,
 				c3Version,
 				os,
+				amplitude_session_id: now + 1234,
+				amplitude_event_id: 1,
 				args: {
 					projectName: "app",
 				},
@@ -140,9 +137,10 @@ describe("createReporter", () => {
 			event: "c3 session started",
 			deviceId,
 			userId,
-			timestamp: Date.now(),
+			timestamp: now,
 			properties: {
-				sessionId,
+				amplitude_session_id: now,
+				amplitude_event_id: 0,
 				c3Version,
 				os,
 				args: {
@@ -161,9 +159,10 @@ describe("createReporter", () => {
 			event: "c3 session cancelled",
 			deviceId,
 			userId,
-			timestamp: Date.now(),
+			timestamp: now + 1234,
 			properties: {
-				sessionId,
+				amplitude_session_id: now + 1234,
+				amplitude_event_id: 1,
 				c3Version,
 				os,
 				args: {
@@ -190,9 +189,10 @@ describe("createReporter", () => {
 			event: "c3 session started",
 			deviceId,
 			userId,
-			timestamp: Date.now(),
+			timestamp: now,
 			properties: {
-				sessionId,
+				amplitude_session_id: now,
+				amplitude_event_id: 0,
 				c3Version,
 				os,
 				args: {
@@ -211,9 +211,10 @@ describe("createReporter", () => {
 			event: "c3 session errored",
 			deviceId,
 			userId,
-			timestamp: Date.now(),
+			timestamp: now + 1234,
 			properties: {
-				sessionId,
+				amplitude_session_id: now + 1234,
+				amplitude_event_id: 1,
 				c3Version,
 				os,
 				args: {
@@ -247,9 +248,10 @@ describe("createReporter", () => {
 			event: "c3 session started",
 			deviceId,
 			userId,
-			timestamp: Date.now(),
+			timestamp: now,
 			properties: {
-				sessionId,
+				amplitude_session_id: now,
+				amplitude_event_id: 0,
 				c3Version,
 				os,
 				args: {
@@ -268,9 +270,10 @@ describe("createReporter", () => {
 			event: "c3 session cancelled",
 			deviceId,
 			userId,
-			timestamp: Date.now(),
+			timestamp: now + 1234,
 			properties: {
-				sessionId,
+				amplitude_session_id: now + 1234,
+				amplitude_event_id: 1,
 				c3Version,
 				os,
 				args: {
@@ -299,9 +302,10 @@ describe("createReporter", () => {
 			event: "c3 session started",
 			deviceId,
 			userId,
-			timestamp: Date.now(),
+			timestamp: now,
 			properties: {
-				sessionId,
+				amplitude_session_id: now,
+				amplitude_event_id: 0,
 				c3Version,
 				os,
 				args: {
@@ -320,9 +324,10 @@ describe("createReporter", () => {
 			event: "c3 session cancelled",
 			deviceId,
 			userId,
-			timestamp: Date.now(),
+			timestamp: now + 1234,
 			properties: {
-				sessionId,
+				amplitude_session_id: now + 1234,
+				amplitude_event_id: 1,
 				c3Version,
 				os,
 				args: {

@@ -4,7 +4,6 @@ import { logRaw } from "@cloudflare/cli";
 import { CancelError } from "@cloudflare/cli/error";
 import {
 	getDeviceId,
-	getSessionId,
 	getUserId,
 	readMetricsConfig,
 	writeMetricsConfig,
@@ -47,14 +46,14 @@ export function createReporter() {
 		setEventProperty: (key: string, value: unknown) => void;
 	}>();
 
-	const sessionId = getSessionId();
 	const config = readMetricsConfig();
 	const telemetry = getC3Permission(config);
 	const deviceId = getDeviceId(config);
-	const os = {
-		platform: process.platform,
-		arch: process.arch,
-	};
+	const os = process.platform + ":" + process.arch;
+
+	// The event id is an incrementing counter to distinguish events with the same `user_id` and timestamp from each other.
+	// @see https://amplitude.com/docs/apis/analytics/http-v2#event-array-keys
+	let amplitude_event_id = 0;
 
 	function sendEvent<EventName extends Event["name"]>(
 		name: EventName,
@@ -72,7 +71,8 @@ export function createReporter() {
 			userId,
 			timestamp: Date.now(),
 			properties: {
-				sessionId,
+				amplitude_session_id: Date.now(),
+				amplitude_event_id: amplitude_event_id++,
 				os,
 				c3Version,
 				...properties,
