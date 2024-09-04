@@ -106,7 +106,7 @@ export function printWelcomeMessage(
 
 	if (telemetryEnabled) {
 		lines.push(
-			`📊 Cloudflare collects annoymous usage data to improve create-cloudflare over time.`,
+			`📊 Cloudflare collects anonymous usage data to improve create-cloudflare over time.`,
 			`   Read more / Opt-out at [link to data policy]`,
 		);
 	}
