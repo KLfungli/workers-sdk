@@ -50,6 +50,7 @@ export function createReporter() {
 	const telemetry = getC3Permission(config);
 	const deviceId = getDeviceId(config);
 	const os = process.platform + ":" + process.arch;
+	const amplitude_session_id = Date.now();
 
 	// The event id is an incrementing counter to distinguish events with the same `user_id` and timestamp from each other.
 	// @see https://amplitude.com/docs/apis/analytics/http-v2#event-array-keys
@@ -71,7 +72,7 @@ export function createReporter() {
 			userId,
 			timestamp: Date.now(),
 			properties: {
-				amplitude_session_id: Date.now(),
+				amplitude_session_id,
 				amplitude_event_id: amplitude_event_id++,
 				os,
 				c3Version,

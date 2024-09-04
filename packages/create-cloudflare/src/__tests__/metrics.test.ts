@@ -86,7 +86,7 @@ describe("createReporter", () => {
 			properties: {
 				c3Version,
 				os,
-				amplitude_session_id: now + 1234,
+				amplitude_session_id: now,
 				amplitude_event_id: 1,
 				args: {
 					projectName: "app",
@@ -161,7 +161,7 @@ describe("createReporter", () => {
 			userId,
 			timestamp: now + 1234,
 			properties: {
-				amplitude_session_id: now + 1234,
+				amplitude_session_id: now,
 				amplitude_event_id: 1,
 				c3Version,
 				os,
@@ -213,7 +213,7 @@ describe("createReporter", () => {
 			userId,
 			timestamp: now + 1234,
 			properties: {
-				amplitude_session_id: now + 1234,
+				amplitude_session_id: now,
 				amplitude_event_id: 1,
 				c3Version,
 				os,
@@ -272,7 +272,7 @@ describe("createReporter", () => {
 			userId,
 			timestamp: now + 1234,
 			properties: {
-				amplitude_session_id: now + 1234,
+				amplitude_session_id: now,
 				amplitude_event_id: 1,
 				c3Version,
 				os,
@@ -326,7 +326,7 @@ describe("createReporter", () => {
 			userId,
 			timestamp: now + 1234,
 			properties: {
-				amplitude_session_id: now + 1234,
+				amplitude_session_id: now,
 				amplitude_event_id: 1,
 				c3Version,
 				os,

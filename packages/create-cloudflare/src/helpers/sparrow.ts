@@ -26,6 +26,4 @@ export async function sendEvent(payload: EventPayload) {
 		},
 		body: JSON.stringify(payload),
 	});
-
-	// console.log("Event sent to Sparrow", payload);
 }
