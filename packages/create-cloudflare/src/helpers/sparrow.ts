@@ -1,7 +1,8 @@
 import { fetch } from "undici";
 
-// The __SPARROW_SOURCE_KEY__ will be replaced with the env value at build time through esbuild's `define` option
-const SPARROW_SOURCE_KEY: string = "__SPARROW_SOURCE_KEY__";
+// The SPARROW_SOURCE_KEY will be provided at build time through esbuild's `define` option
+// No events will be sent if the env `SPARROW_SOURCE_KEY` is not provided and the value will be set as an empty string instead.
+declare const SPARROW_SOURCE_KEY: string;
 const SPARROW_URL: string = "https://sparrow.cloudflare.com";
 
 export type EventPayload = {
@@ -13,7 +14,7 @@ export type EventPayload = {
 };
 
 export function hasSparrowSourceKey() {
-	return SPARROW_SOURCE_KEY !== "__SPARROW_SOURCE_KEY__";
+	return SPARROW_SOURCE_KEY !== "";
 }
 
 export async function sendEvent(payload: EventPayload) {
@@ -25,4 +26,6 @@ export async function sendEvent(payload: EventPayload) {
 		},
 		body: JSON.stringify(payload),
 	});
+
+	// console.log("Event sent to Sparrow", payload);
 }
