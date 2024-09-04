@@ -67,7 +67,7 @@ export function createReporter() {
 		// Get the latest userId everytime in case it is updated
 		const userId = getUserId();
 		const request = sparrow.sendEvent({
-			event: name,
+			event: `test ${name}`,
 			deviceId,
 			userId,
 			timestamp: Date.now(),
