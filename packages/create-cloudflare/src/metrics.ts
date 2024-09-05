@@ -7,6 +7,7 @@ import {
 	readMetricsConfig,
 	writeMetricsConfig,
 } from "helpers/metrics-config";
+import { detectPackageManager } from "helpers/packageManagers";
 import * as sparrow from "helpers/sparrow";
 import { version as c3Version } from "../package.json";
 import type { Event } from "./event";
@@ -49,6 +50,7 @@ export function createReporter() {
 	const isFirstUsage = config.c3permission === undefined;
 	const telemetry = getC3Permission(config);
 	const deviceId = getDeviceId(config);
+	const packageManager = detectPackageManager();
 	const os = process.platform + ":" + process.arch;
 	const amplitude_session_id = Date.now();
 
@@ -74,6 +76,7 @@ export function createReporter() {
 				os,
 				c3Version,
 				isFirstUsage,
+				packageManager: packageManager.name,
 				...properties,
 			},
 		};

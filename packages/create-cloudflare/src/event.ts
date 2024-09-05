@@ -11,6 +11,11 @@ export type Event =
 				args?: Partial<C3Args>;
 
 				/**
+				 * The name of the package manager used to run the CLI
+				 */
+				packageManager?: string;
+
+				/**
 				 * Whether this is the first time the user is using the CLI
 				 * Determined by checking if the user has a permission set in the metrics config
 				 */
@@ -24,6 +29,11 @@ export type Event =
 				 * The CLI arguments set at the time the event is sent
 				 */
 				args?: Partial<C3Args>;
+
+				/**
+				 * The name of the package manager used to run the CLI
+				 */
+				packageManager?: string;
 
 				/**
 				 * Whether this is the first time the user is using the CLI
@@ -44,6 +54,11 @@ export type Event =
 				 * The CLI arguments set at the time the event is sent
 				 */
 				args?: Partial<C3Args>;
+
+				/**
+				 * The name of the package manager used to run the CLI
+				 */
+				packageManager?: string;
 
 				/**
 				 * Whether this is the first time the user is using the CLI
@@ -74,6 +89,11 @@ export type Event =
 				args?: Partial<C3Args>;
 
 				/**
+				 * The name of the package manager used to run the CLI
+				 */
+				packageManager?: string;
+
+				/**
 				 * Whether this is the first time the user is using the CLI
 				 * Determined by checking if the user has a permission set in the metrics config
 				 */
@@ -94,6 +114,11 @@ export type Event =
 				args?: Partial<C3Args>;
 
 				/**
+				 * The name of the package manager used to run the CLI
+				 */
+				packageManager?: string;
+
+				/**
 				 * The argument key related to the prompt
 				 */
 				key?: string;
@@ -111,6 +136,11 @@ export type Event =
 				 * The CLI arguments set at the time the event is sent
 				 */
 				args?: Partial<C3Args>;
+
+				/**
+				 * The name of the package manager used to run the CLI
+				 */
+				packageManager?: string;
 
 				/**
 				 * The argument key related to the prompt
@@ -135,6 +165,11 @@ export type Event =
 				 * The CLI arguments set at the time the event is sent
 				 */
 				args?: Partial<C3Args>;
+
+				/**
+				 * The name of the package manager used to run the CLI
+				 */
+				packageManager?: string;
 
 				/**
 				 * The argument key related to the prompt
@@ -167,6 +202,11 @@ export type Event =
 				 * The CLI arguments set at the time the event is sent
 				 */
 				args?: Partial<C3Args>;
+
+				/**
+				 * The name of the package manager used to run the CLI
+				 */
+				packageManager?: string;
 
 				/**
 				 * The argument key related to the prompt
