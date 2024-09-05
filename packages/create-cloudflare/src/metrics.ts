@@ -40,6 +40,21 @@ export function promiseWithResolvers<T>() {
 	return { resolve, reject, promise };
 }
 
+export function getPlatform() {
+	const platform = process.platform;
+
+	switch (platform) {
+		case "win32":
+			return "Windows";
+		case "darwin":
+			return "Mac OS";
+		case "linux":
+			return "Linux";
+		default:
+			return `Others: ${platform}`;
+	}
+}
+
 export function createReporter() {
 	const events: Array<Promise<Record<string, unknown>>> = [];
 	const als = new AsyncLocalStorage<{
@@ -51,7 +66,7 @@ export function createReporter() {
 	const telemetry = getC3Permission(config);
 	const deviceId = getDeviceId(config);
 	const packageManager = detectPackageManager();
-	const os = process.platform + ":" + process.arch;
+	const platform = getPlatform();
 	const amplitude_session_id = Date.now();
 
 	// The event id is an incrementing counter to distinguish events with the same `user_id` and timestamp from each other.
@@ -73,7 +88,7 @@ export function createReporter() {
 			properties: {
 				amplitude_session_id,
 				amplitude_event_id: amplitude_event_id++,
-				os,
+				platform,
 				c3Version,
 				isFirstUsage,
 				packageManager: packageManager.name,
