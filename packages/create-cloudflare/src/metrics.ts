@@ -201,6 +201,9 @@ export function createReporter() {
 // A singleton instance of the reporter that can be imported and used across the codebase
 export const reporter = createReporter();
 
+// Check if the user is using the CLI for the first time
+export const isFirstUsage = readMetricsConfig().c3permission === undefined;
+
 export function initializeC3Permission(enabled = true) {
 	return {
 		enabled,

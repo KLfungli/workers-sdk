@@ -25,7 +25,12 @@ import { maybeOpenBrowser, offerToDeploy, runDeploy } from "./deploy";
 import { printSummary, printWelcomeMessage } from "./dialog";
 import { gitCommit, offerGit } from "./git";
 import { showHelp } from "./help";
-import { getC3Permission, reporter, runTelemetryCommand } from "./metrics";
+import {
+	getC3Permission,
+	isFirstUsage,
+	reporter,
+	runTelemetryCommand,
+} from "./metrics";
 import { createProject } from "./pages";
 import {
 	addWranglerToGitIgnore,
@@ -83,6 +88,7 @@ export const main = async (argv: string[]) => {
 			eventPrefix: "c3 session",
 			startedProps: {
 				args,
+				isFirstUsage,
 			},
 			promise: () => runCli(args),
 		});

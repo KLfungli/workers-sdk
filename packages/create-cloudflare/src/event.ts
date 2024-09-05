@@ -9,6 +9,12 @@ export type Event =
 				 * The CLI arguments set at the time the event is sent
 				 */
 				args?: Partial<C3Args>;
+
+				/**
+				 * Whether this is the first time the user is using the CLI
+				 * Determined by checking if the user has a permission set in the metrics config
+				 */
+				isFirstUsage?: boolean;
 			};
 	  }
 	| {
@@ -18,6 +24,12 @@ export type Event =
 				 * The CLI arguments set at the time the event is sent
 				 */
 				args?: Partial<C3Args>;
+
+				/**
+				 * Whether this is the first time the user is using the CLI
+				 * Determined by checking if the user has a permission set in the metrics config
+				 */
+				isFirstUsage?: boolean;
 
 				/**
 				 * The duration of the prompt since it started
@@ -32,6 +44,12 @@ export type Event =
 				 * The CLI arguments set at the time the event is sent
 				 */
 				args?: Partial<C3Args>;
+
+				/**
+				 * Whether this is the first time the user is using the CLI
+				 * Determined by checking if the user has a permission set in the metrics config
+				 */
+				isFirstUsage?: boolean;
 
 				/**
 				 * The error that caused the session to be crashed
@@ -54,6 +72,12 @@ export type Event =
 				 * The CLI arguments set at the time the event is sent
 				 */
 				args?: Partial<C3Args>;
+
+				/**
+				 * Whether this is the first time the user is using the CLI
+				 * Determined by checking if the user has a permission set in the metrics config
+				 */
+				isFirstUsage?: boolean;
 
 				/**
 				 * The duration of the prompt since it started
