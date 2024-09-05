@@ -40,12 +40,13 @@ export function promiseWithResolvers<T>() {
 }
 
 export function createReporter() {
-	const events: Array<Promise<void>> = [];
+	const events: Array<Promise<Record<string, unknown>>> = [];
 	const als = new AsyncLocalStorage<{
 		setEventProperty: (key: string, value: unknown) => void;
 	}>();
 
 	const config = readMetricsConfig();
+	const isFirstUsage = config.c3permission === undefined;
 	const telemetry = getC3Permission(config);
 	const deviceId = getDeviceId(config);
 	const os = process.platform + ":" + process.arch;
@@ -63,8 +64,7 @@ export function createReporter() {
 			return;
 		}
 
-		// Get the latest userId everytime in case it is updated
-		const request = sparrow.sendEvent({
+		const payload: sparrow.EventPayload = {
 			event: `test ${name}`,
 			deviceId,
 			timestamp: Date.now(),
@@ -73,9 +73,20 @@ export function createReporter() {
 				amplitude_event_id: amplitude_event_id++,
 				os,
 				c3Version,
+				isFirstUsage,
 				...properties,
 			},
-		});
+		};
+
+		// Get the latest userId everytime in case it is updated
+		const request = sparrow
+			.sendEvent(payload)
+			.then(() => ({ status: "success", payload }))
+			.catch((reason) => ({
+				status: "failed",
+				payload,
+				reason,
+			}));
 
 		// TODO(consider): retry failed requests
 		// TODO(consider): add a timeout to avoid the process staying alive for too long
@@ -84,7 +95,18 @@ export function createReporter() {
 	}
 
 	async function waitForAllEventsSettled(): Promise<void> {
-		await Promise.allSettled(events);
+		const result = await Promise.allSettled(events);
+
+		console.log("All events settled");
+		console.log(
+			JSON.stringify(
+				result.map((event) =>
+					event.status === "fulfilled" ? event.value : event.reason,
+				),
+				null,
+				2,
+			),
+		);
 	}
 
 	// Collect metrics for an async function
@@ -197,9 +219,6 @@ export function createReporter() {
 
 // A singleton instance of the reporter that can be imported and used across the codebase
 export const reporter = createReporter();
-
-// Check if the user is using the CLI for the first time
-export const isFirstUsage = readMetricsConfig().c3permission === undefined;
 
 export function initializeC3Permission(enabled = true) {
 	return {
