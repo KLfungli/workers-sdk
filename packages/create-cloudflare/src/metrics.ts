@@ -218,13 +218,14 @@ export function createReporter() {
 	function setEventProperty(key: string, value: unknown) {
 		const store = als.getStore();
 
-		if (!store) {
+		// Throw only on test environment to avoid breaking the CLI
+		if (!store && process.env.VITEST) {
 			throw new Error(
 				"`setEventProperty` must be called within `collectAsyncMetrics`",
 			);
 		}
 
-		return store.setEventProperty(key, value);
+		store?.setEventProperty(key, value);
 	}
 
 	return {
