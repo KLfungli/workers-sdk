@@ -1,5 +1,5 @@
 import { join } from "path";
-import { crash, updateStatus, warn } from "@cloudflare/cli";
+import { updateStatus, warn } from "@cloudflare/cli";
 import { brandColor, dim } from "@cloudflare/cli/colors";
 import { inputPrompt, spinner } from "@cloudflare/cli/interactive";
 import { runFrameworkGenerator } from "frameworks/index";
@@ -41,7 +41,7 @@ const generate = async (ctx: C3Context) => {
 		// This should never happen to users, it is a check mostly so that
 		// if the toml file is changed in a way that breaks the "KV Example" addition
 		// the C3 Next.js e2e runs will fail with this
-		crash("Failed to properly generate the wrangler.toml file");
+		throw new Error("Failed to properly generate the wrangler.toml file");
 	}
 
 	writeFile(join(ctx.project.path, "wrangler.toml"), newTomlContent);
@@ -88,7 +88,7 @@ const configure = async (ctx: C3Context) => {
 	]);
 
 	if (!path) {
-		crash("Could not find the `/api` or `/app` directory");
+		throw new Error("Could not find the `/api` or `/app` directory");
 	}
 
 	const usesTs = usesTypescript(ctx);

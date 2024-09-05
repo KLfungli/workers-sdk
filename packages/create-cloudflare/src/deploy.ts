@@ -1,4 +1,4 @@
-import { crash, startSection, updateStatus } from "@cloudflare/cli";
+import { startSection, updateStatus } from "@cloudflare/cli";
 import { blue, brandColor, dim } from "@cloudflare/cli/colors";
 import { processArgument } from "helpers/args";
 import { C3_DEFAULTS, openInBrowser } from "helpers/cli";
@@ -80,8 +80,7 @@ export const runDeploy = async (ctx: C3Context) => {
 	const { npm, name: pm } = detectPackageManager();
 
 	if (!ctx.account?.id) {
-		crash("Failed to read Cloudflare account.");
-		return;
+		throw new Error("Failed to read Cloudflare account.");
 	}
 
 	const baseDeployCmd = [npm, "run", ctx.template.deployScript ?? "deploy"];
@@ -118,7 +117,7 @@ export const runDeploy = async (ctx: C3Context) => {
 	if (deployedUrlMatch) {
 		ctx.deployment.url = deployedUrlMatch[0];
 	} else {
-		crash("Failed to find deployment url.");
+		throw new Error("Failed to find deployment url.");
 	}
 
 	// if a pages url (<sha1>.<project>.pages.dev), remove the sha1

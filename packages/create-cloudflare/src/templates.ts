@@ -2,7 +2,7 @@ import { existsSync } from "fs";
 import { cp, mkdtemp, rename } from "fs/promises";
 import { tmpdir } from "os";
 import { basename, dirname, join, resolve } from "path";
-import { crash, shapes, updateStatus, warn } from "@cloudflare/cli";
+import { shapes, updateStatus, warn } from "@cloudflare/cli";
 import { blue, brandColor, dim } from "@cloudflare/cli/colors";
 import { spinner } from "@cloudflare/cli/interactive";
 import deepmerge from "deepmerge";
@@ -206,7 +206,7 @@ export const deriveCorrelatedArgs = (args: Partial<C3Args>) => {
 		const language = args.ts ? "ts" : "js";
 
 		if (args.lang !== undefined) {
-			crash(
+			throw new Error(
 				"The `--ts` argument cannot be specified in conjunction with the `--lang` argument",
 			);
 		}
@@ -341,7 +341,7 @@ export const createContext = async (
 		const frameworkConfig = frameworkMap[framework as FrameworkName];
 
 		if (!frameworkConfig) {
-			crash(`Unsupported framework: ${framework}`);
+			throw new Error(`Unsupported framework: ${framework}`);
 		}
 
 		template = {
@@ -386,7 +386,7 @@ export const createContext = async (
 		template = templateMap[type];
 
 		if (!template) {
-			return crash(`Unknown application type provided: ${type}.`);
+			throw new Error(`Unknown application type provided: ${type}.`);
 		}
 	}
 
@@ -471,7 +471,9 @@ export async function copyTemplateFiles(ctx: C3Context) {
 		const variantInfo = variant ? copyFiles.variants[variant] : null;
 
 		if (!variantInfo) {
-			crash(`Unknown variant provided: ${JSON.stringify(variant ?? "")}`);
+			throw new Error(
+				`Unknown variant provided: ${JSON.stringify(variant ?? "")}`,
+			);
 		}
 
 		srcdir = join(getTemplatePath(ctx), variantInfo.path);
@@ -548,13 +550,17 @@ const validateTemplateSrcDirectory = (path: string, config: TemplateConfig) => {
 	if (config.platform === "workers") {
 		const wranglerTomlPath = resolve(path, "wrangler.toml");
 		if (!existsSync(wranglerTomlPath)) {
-			crash(`create-cloudflare templates must contain a "wrangler.toml" file.`);
+			throw new Error(
+				`create-cloudflare templates must contain a "wrangler.toml" file.`,
+			);
 		}
 	}
 
 	const pkgJsonPath = resolve(path, "package.json");
 	if (!existsSync(pkgJsonPath)) {
-		crash(`create-cloudflare templates must contain a "package.json" file.`);
+		throw new Error(
+			`create-cloudflare templates must contain a "package.json" file.`,
+		);
 	}
 };
 
@@ -614,7 +620,7 @@ export const downloadRemoteTemplate = async (src: string) => {
 		return tmpDir;
 	} catch (error) {
 		updateStatus(`${brandColor("template")} ${dim("failed")}`);
-		return crash(`Failed to clone remote template: ${src}`);
+		throw new Error(`Failed to clone remote template: ${src}`);
 	}
 };
 

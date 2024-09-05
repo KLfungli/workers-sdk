@@ -4,8 +4,8 @@ import { dirname } from "path";
 import { chdir } from "process";
 import {
 	cancel,
-	crash,
 	endSection,
+	error,
 	logRaw,
 	startSection,
 } from "@cloudflare/cli";
@@ -122,7 +122,7 @@ export const setupProjectDirectory = (ctx: C3Context) => {
 	const path = ctx.project.path;
 	const err = validateProjectDirectory(path, ctx.args);
 	if (err) {
-		crash(err);
+		throw new Error(err);
 	}
 
 	const directory = dirname(path);
@@ -202,7 +202,7 @@ main(process.argv)
 		if (e instanceof CancelError) {
 			cancel(e.message);
 		} else {
-			crash(e);
+			error(e);
 		}
 	})
 	.finally(async () => {
