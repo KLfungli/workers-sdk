@@ -4,7 +4,6 @@ import { logRaw } from "@cloudflare/cli";
 import { CancelError } from "@cloudflare/cli/error";
 import {
 	getDeviceId,
-	getUserId,
 	readMetricsConfig,
 	writeMetricsConfig,
 } from "helpers/metrics-config";
@@ -65,11 +64,9 @@ export function createReporter() {
 		}
 
 		// Get the latest userId everytime in case it is updated
-		const userId = getUserId();
 		const request = sparrow.sendEvent({
 			event: `test ${name}`,
 			deviceId,
-			userId,
 			timestamp: Date.now(),
 			properties: {
 				amplitude_session_id,

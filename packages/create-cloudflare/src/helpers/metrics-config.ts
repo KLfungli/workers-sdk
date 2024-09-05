@@ -1,13 +1,11 @@
 // Copied from packages/wrangler/src/metrics/metrics-config.ts with the following changes:
 // - Removed methods not required for c3
 // - Added `c3permission` property to the `MetricsConfigFile` interface
-// - Exported both `getDeviceId` and `getUserId` helpers
-// - Modified `getUserId` to return the id from the cache only without fetching it from the API
+// - Exported the `getDeviceId` helper
 
 import { randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { getConfigCache } from "./config-cache";
 import { getGlobalWranglerConfigPath } from "./global-wrangler-config-path";
 
 export const USER_ID_CACHE_PATH = "user-id.json";
@@ -81,11 +79,4 @@ export function getDeviceId(config: MetricsConfigFile) {
 		writeMetricsConfig({ ...config, deviceId });
 	}
 	return deviceId;
-}
-
-/**
- * Returns the ID of the current user, which will be sent with each event.
- */
-export function getUserId() {
-	return getConfigCache<{ userId: string }>(USER_ID_CACHE_PATH).userId;
 }
