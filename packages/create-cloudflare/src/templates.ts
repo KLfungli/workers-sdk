@@ -440,10 +440,9 @@ export const createContext = async (
 
 	return {
 		project: { name, path },
-		args: {
-			...args,
-			projectName,
-		},
+		// We need to maintain a reference to the original args
+		// To ensure that we send the latest args to Sparrow
+		args: Object.assign(args, { projectName }),
 		template,
 		originalCWD,
 		gitRepoAlreadyExisted: await isInsideGitRepo(directory),
