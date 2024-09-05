@@ -251,7 +251,10 @@ export const parseArgs = async (
 
 	const c3positionalArgs = c3Args.filter((arg) => !arg.startsWith("-"));
 
-	if (c3positionalArgs[2] === "telemetry") {
+	if (
+		c3positionalArgs[2] === "telemetry" &&
+		c3positionalArgs[3] !== undefined
+	) {
 		const action = c3positionalArgs[3];
 
 		switch (action) {
@@ -262,6 +265,8 @@ export const parseArgs = async (
 					type: "telemetry",
 					action,
 				};
+			default:
+				throw new Error(`Unknown subcommand "telemetry ${action}"`);
 		}
 	}
 

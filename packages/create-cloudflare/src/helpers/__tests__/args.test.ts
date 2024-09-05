@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from "vitest";
+import { assert, describe, expect, test, vi } from "vitest";
 import { parseArgs } from "../args";
 
 vi.mock("@cloudflare/cli");
@@ -9,11 +9,7 @@ describe("Cli", () => {
 		test("no arguments provide", async () => {
 			const result = await parseArgs([]);
 
-			if (result.type !== "default") {
-				expect(result.type).toBe("default");
-				return;
-			}
-
+			assert(result.type === "default");
 			expect(result.args.projectName).toBeFalsy();
 			expect(result.args.additionalArgs).toEqual([]);
 		});
@@ -21,11 +17,7 @@ describe("Cli", () => {
 		test("parsing the first argument as the projectName", async () => {
 			const result = await parseArgs(["my-project"]);
 
-			if (result.type !== "default") {
-				expect(result.type).toBe("default");
-				return;
-			}
-
+			assert(result.type === "default");
 			expect(result.args.projectName).toBe("my-project");
 		});
 
@@ -43,22 +35,14 @@ describe("Cli", () => {
 		test("not parsing first argument as the projectName if it is after --", async () => {
 			const result = await parseArgs(["--", "my-project"]);
 
-			if (result.type !== "default") {
-				expect(result.type).toBe("default");
-				return;
-			}
-
+			assert(result.type === "default");
 			expect(result.args.projectName).toBeFalsy();
 		});
 
 		test("parsing optional C3 arguments correctly", async () => {
 			const result = await parseArgs(["--framework", "angular", "--ts=true"]);
 
-			if (result.type !== "default") {
-				expect(result.type).toBe("default");
-				return;
-			}
-
+			assert(result.type === "default");
 			expect(result.args.projectName).toBeFalsy();
 			expect(result.args.framework).toEqual("angular");
 			expect(result.args.ts).toEqual(true);
@@ -75,11 +59,7 @@ describe("Cli", () => {
 				"--git=false",
 			]);
 
-			if (result.type !== "default") {
-				expect(result.type).toBe("default");
-				return;
-			}
-
+			assert(result.type === "default");
 			expect(result.args.projectName).toEqual("my-project");
 			expect(result.args.framework).toEqual("angular");
 			expect(result.args.deploy).toEqual(true);
@@ -98,11 +78,7 @@ describe("Cli", () => {
 				"5",
 			]);
 
-			if (result.type !== "default") {
-				expect(result.type).toBe("default");
-				return;
-			}
-
+			assert(result.type === "default");
 			expect(result.args.projectName).toBeFalsy();
 			expect(result.args.framework).toEqual("react");
 			expect(result.args.ts).toEqual(true);
@@ -125,11 +101,7 @@ describe("Cli", () => {
 				"5",
 			]);
 
-			if (result.type !== "default") {
-				expect(result.type).toBe("default");
-				return;
-			}
-
+			assert(result.type === "default");
 			expect(result.args.projectName).toBe("my-react-project");
 			expect(result.args.framework).toEqual("react");
 			expect(result.args.ts).toEqual(true);
