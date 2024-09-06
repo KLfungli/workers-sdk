@@ -61,7 +61,7 @@ export function createReporter() {
 		setEventProperty: (key: string, value: unknown) => void;
 	}>();
 
-	const config = readMetricsConfig();
+	const config = readMetricsConfig() ?? {};
 	const isFirstUsage = config.c3permission === undefined;
 	const telemetry = getC3Permission(config);
 	const deviceId = getDeviceId(config);

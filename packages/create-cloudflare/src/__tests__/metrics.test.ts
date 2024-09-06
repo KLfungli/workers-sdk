@@ -5,12 +5,12 @@ import { collectCLIOutput, normalizeOutput } from "../../../cli/test-util";
 import { version as c3Version } from "../../package.json";
 import {
 	getDeviceId,
-	getUserId,
 	readMetricsConfig,
 	writeMetricsConfig,
 } from "../helpers/metrics-config";
 import {
 	createReporter,
+	getPlatform,
 	promiseWithResolvers,
 	runTelemetryCommand,
 } from "../metrics";
@@ -21,8 +21,7 @@ vi.mock("helpers/sparrow");
 describe("createReporter", () => {
 	const now = 987654321;
 	const deviceId = "test-device-id";
-	const userId = "test-user-id";
-	const os = process.platform + ":" + process.arch;
+	const platform = getPlatform();
 
 	beforeEach(() => {
 		vi.useFakeTimers({ now });
@@ -32,8 +31,8 @@ describe("createReporter", () => {
 				date: new Date(),
 			},
 		});
+		vi.mocked(sendEvent).mockResolvedValue();
 		vi.mocked(getDeviceId).mockReturnValue(deviceId);
-		vi.mocked(getUserId).mockReturnValue(userId);
 		vi.mocked(hasSparrowSourceKey).mockReturnValue(true);
 	});
 
@@ -56,13 +55,14 @@ describe("createReporter", () => {
 		});
 
 		expect(sendEvent).toBeCalledWith({
-			event: "c3 session started",
+			event: "test c3 session started",
 			deviceId,
-			userId,
 			timestamp: now,
 			properties: {
 				c3Version,
-				os,
+				platform,
+				packageManager: "pnpm",
+				isFirstUsage: false,
 				amplitude_session_id: now,
 				amplitude_event_id: 0,
 				args: {
@@ -79,13 +79,14 @@ describe("createReporter", () => {
 		await expect(operation).resolves.toBe("test result");
 
 		expect(sendEvent).toBeCalledWith({
-			event: "c3 session completed",
+			event: "test c3 session completed",
 			deviceId,
-			userId,
 			timestamp: now + 1234,
 			properties: {
 				c3Version,
-				os,
+				platform,
+				packageManager: "pnpm",
+				isFirstUsage: false,
 				amplitude_session_id: now,
 				amplitude_event_id: 1,
 				args: {
@@ -134,15 +135,16 @@ describe("createReporter", () => {
 		});
 
 		expect(sendEvent).toBeCalledWith({
-			event: "c3 session started",
+			event: "test c3 session started",
 			deviceId,
-			userId,
 			timestamp: now,
 			properties: {
 				amplitude_session_id: now,
 				amplitude_event_id: 0,
 				c3Version,
-				os,
+				platform,
+				packageManager: "pnpm",
+				isFirstUsage: false,
 				args: {
 					projectName: "app",
 				},
@@ -156,15 +158,16 @@ describe("createReporter", () => {
 		await expect(operation).rejects.toThrow(CancelError);
 
 		expect(sendEvent).toBeCalledWith({
-			event: "c3 session cancelled",
+			event: "test c3 session cancelled",
 			deviceId,
-			userId,
 			timestamp: now + 1234,
 			properties: {
 				amplitude_session_id: now,
 				amplitude_event_id: 1,
 				c3Version,
-				os,
+				platform,
+				packageManager: "pnpm",
+				isFirstUsage: false,
 				args: {
 					projectName: "app",
 				},
@@ -186,15 +189,16 @@ describe("createReporter", () => {
 		});
 
 		expect(sendEvent).toBeCalledWith({
-			event: "c3 session started",
+			event: "test c3 session started",
 			deviceId,
-			userId,
 			timestamp: now,
 			properties: {
 				amplitude_session_id: now,
 				amplitude_event_id: 0,
 				c3Version,
-				os,
+				platform,
+				packageManager: "pnpm",
+				isFirstUsage: false,
 				args: {
 					projectName: "app",
 				},
@@ -208,15 +212,16 @@ describe("createReporter", () => {
 		await expect(process).rejects.toThrow(Error);
 
 		expect(sendEvent).toBeCalledWith({
-			event: "c3 session errored",
+			event: "test c3 session errored",
 			deviceId,
-			userId,
 			timestamp: now + 1234,
 			properties: {
 				amplitude_session_id: now,
 				amplitude_event_id: 1,
 				c3Version,
-				os,
+				platform,
+				packageManager: "pnpm",
+				isFirstUsage: false,
 				args: {
 					projectName: "app",
 				},
@@ -245,15 +250,16 @@ describe("createReporter", () => {
 		});
 
 		expect(sendEvent).toBeCalledWith({
-			event: "c3 session started",
+			event: "test c3 session started",
 			deviceId,
-			userId,
 			timestamp: now,
 			properties: {
 				amplitude_session_id: now,
 				amplitude_event_id: 0,
 				c3Version,
-				os,
+				platform,
+				packageManager: "pnpm",
+				isFirstUsage: false,
 				args: {
 					projectName: "app",
 				},
@@ -267,15 +273,16 @@ describe("createReporter", () => {
 		await expect(run).rejects.toThrow(CancelError);
 
 		expect(sendEvent).toBeCalledWith({
-			event: "c3 session cancelled",
+			event: "test c3 session cancelled",
 			deviceId,
-			userId,
 			timestamp: now + 1234,
 			properties: {
 				amplitude_session_id: now,
 				amplitude_event_id: 1,
 				c3Version,
-				os,
+				platform,
+				packageManager: "pnpm",
+				isFirstUsage: false,
 				args: {
 					projectName: "app",
 				},
@@ -299,15 +306,16 @@ describe("createReporter", () => {
 		});
 
 		expect(sendEvent).toBeCalledWith({
-			event: "c3 session started",
+			event: "test c3 session started",
 			deviceId,
-			userId,
 			timestamp: now,
 			properties: {
 				amplitude_session_id: now,
 				amplitude_event_id: 0,
 				c3Version,
-				os,
+				platform,
+				packageManager: "pnpm",
+				isFirstUsage: false,
 				args: {
 					projectName: "app",
 				},
@@ -321,15 +329,16 @@ describe("createReporter", () => {
 		await expect(run).rejects.toThrow(CancelError);
 
 		expect(sendEvent).toBeCalledWith({
-			event: "c3 session cancelled",
+			event: "test c3 session cancelled",
 			deviceId,
-			userId,
 			timestamp: now + 1234,
 			properties: {
 				amplitude_session_id: now,
 				amplitude_event_id: 1,
 				c3Version,
-				os,
+				platform,
+				packageManager: "pnpm",
+				isFirstUsage: false,
 				args: {
 					projectName: "app",
 				},
