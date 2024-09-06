@@ -6,7 +6,6 @@ import { quoteShellArgs, runCommand } from "helpers/command";
 import { detectPackageManager } from "helpers/packageManagers";
 import { poll } from "helpers/poll";
 import { isInsideGitRepo } from "./git";
-import { reporter } from "./metrics";
 import { chooseAccount, wranglerLogin } from "./wrangler/accounts";
 import { readWranglerToml } from "./wrangler/config";
 import type { C3Context } from "types";
@@ -47,13 +46,7 @@ export const offerToDeploy = async (ctx: C3Context) => {
 	// initialize a deployment object in context
 	ctx.deployment = {};
 
-	const loginSuccess = await reporter.collectAsyncMetrics({
-		eventPrefix: "c3 login",
-		props: {
-			args: ctx.args,
-		},
-		promise: wranglerLogin,
-	});
+	const loginSuccess = await wranglerLogin(ctx);
 
 	if (!loginSuccess) {
 		return false;

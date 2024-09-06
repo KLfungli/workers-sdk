@@ -47,35 +47,47 @@ export const chooseAccount = async (ctx: C3Context) => {
 	ctx.account = { id: accountId, name: accountName };
 };
 
-export const wranglerLogin = async () => {
-	const { npx } = detectPackageManager();
+export const wranglerLogin = async (ctx: C3Context) => {
+	return reporter.collectAsyncMetrics({
+		eventPrefix: "c3 login",
+		props: {
+			args: ctx.args,
+		},
+		async promise() {
+			const { npx } = detectPackageManager();
 
-	const s = spinner();
-	s.start(`Logging into Cloudflare ${dim("checking authentication status")}`);
-	const alreadyLoggedIn = await isLoggedIn();
-	s.stop(brandColor(alreadyLoggedIn ? "logged in" : "not logged in"));
+			const s = spinner();
+			s.start(
+				`Logging into Cloudflare ${dim("checking authentication status")}`,
+			);
+			const alreadyLoggedIn = await isLoggedIn();
+			s.stop(brandColor(alreadyLoggedIn ? "logged in" : "not logged in"));
 
-	reporter.setEventProperty("alreadyLoggedIn", alreadyLoggedIn);
+			reporter.setEventProperty("alreadyLoggedIn", alreadyLoggedIn);
 
-	if (alreadyLoggedIn) {
-		return true;
-	}
+			if (alreadyLoggedIn) {
+				return true;
+			}
 
-	s.start(`Logging into Cloudflare ${dim("This will open a browser window")}`);
+			s.start(
+				`Logging into Cloudflare ${dim("This will open a browser window")}`,
+			);
 
-	// We're using a custom spinner since this is a little complicated.
-	// We want to vary the done status based on the output
-	const output = await runCommand([npx, "wrangler", "login"], {
-		silent: true,
+			// We're using a custom spinner since this is a little complicated.
+			// We want to vary the done status based on the output
+			const output = await runCommand([npx, "wrangler", "login"], {
+				silent: true,
+			});
+			const success = /Successfully logged in/.test(output);
+
+			const verb = success ? "allowed" : "denied";
+			s.stop(`${brandColor(verb)} ${dim("via `wrangler login`")}`);
+
+			reporter.setEventProperty("newLoginSuccessful", success);
+
+			return success;
+		},
 	});
-	const success = /Successfully logged in/.test(output);
-
-	const verb = success ? "allowed" : "denied";
-	s.stop(`${brandColor(verb)} ${dim("via `wrangler login`")}`);
-
-	reporter.setEventProperty("newLoginSuccessful", success);
-
-	return success;
 };
 
 export const listAccounts = async () => {

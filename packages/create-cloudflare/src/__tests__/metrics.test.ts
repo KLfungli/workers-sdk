@@ -31,7 +31,6 @@ describe("createReporter", () => {
 				date: new Date(),
 			},
 		});
-		vi.mocked(sendEvent).mockResolvedValue();
 		vi.mocked(getDeviceId).mockReturnValue(deviceId);
 		vi.mocked(hasSparrowSourceKey).mockReturnValue(true);
 	});
@@ -93,6 +92,8 @@ describe("createReporter", () => {
 					projectName: "app",
 				},
 				durationMs: 1234,
+				durationSeconds: 1.234,
+				durationMinutes: 0.020566666666666667,
 			},
 		});
 		expect(sendEvent).toBeCalledTimes(2);
@@ -172,6 +173,8 @@ describe("createReporter", () => {
 					projectName: "app",
 				},
 				durationMs: 1234,
+				durationSeconds: 1.234,
+				durationMinutes: 0.020566666666666667,
 			},
 		});
 		expect(sendEvent).toBeCalledTimes(2);
@@ -226,6 +229,8 @@ describe("createReporter", () => {
 					projectName: "app",
 				},
 				durationMs: 1234,
+				durationSeconds: 1.234,
+				durationMinutes: 0.020566666666666667,
 				error: {
 					message: "test error",
 					stack: expect.any(String),
@@ -287,6 +292,8 @@ describe("createReporter", () => {
 					projectName: "app",
 				},
 				durationMs: 1234,
+				durationSeconds: 1.234,
+				durationMinutes: 0.020566666666666667,
 			},
 		});
 		expect(sendEvent).toBeCalledTimes(2);
@@ -343,6 +350,8 @@ describe("createReporter", () => {
 					projectName: "app",
 				},
 				durationMs: 1234,
+				durationSeconds: 1.234,
+				durationMinutes: 0.020566666666666667,
 			},
 		});
 		expect(sendEvent).toBeCalledTimes(2);

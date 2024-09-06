@@ -97,8 +97,7 @@ export function createReporter() {
 		};
 
 		// Get the latest userId everytime in case it is updated
-		const request = sparrow
-			.sendEvent(payload)
+		const request = Promise.resolve(sparrow.sendEvent(payload))
 			.then(() => ({ status: "success", payload }))
 			.catch((reason) => ({
 				status: "failed",
@@ -110,6 +109,16 @@ export function createReporter() {
 		// TODO(consider): add a timeout to avoid the process staying alive for too long
 
 		events.push(request);
+	}
+
+	function getDuration(startTime: number) {
+		const ms = Date.now() - startTime;
+
+		return {
+			ms,
+			seconds: ms / 1000,
+			minutes: ms / 1000 / 60,
+		};
 	}
 
 	async function waitForAllEventsSettled(): Promise<void> {
@@ -175,33 +184,37 @@ export function createReporter() {
 			]);
 
 			if (!options.disableTelemetry) {
-				const durationMs = Date.now() - startTime;
+				const duration = getDuration(startTime);
 
 				sendEvent(`${options.eventPrefix} completed`, {
 					...options.props,
 					...additionalProperties,
-					durationMs,
-					durationSeconds: durationMs / 1000,
-					durationMinutes: durationMs / 1000 / 60,
+					durationMs: duration.ms,
+					durationSeconds: duration.seconds,
+					durationMinutes: duration.minutes,
 				});
 			}
 
 			return result;
 		} catch (e) {
 			if (!options.disableTelemetry) {
-				const durationMs = Date.now() - startTime;
+				const duration = getDuration(startTime);
 
 				if (e instanceof CancelError) {
 					sendEvent(`${options.eventPrefix} cancelled`, {
 						...options.props,
 						...additionalProperties,
-						durationMs,
+						durationMs: duration.ms,
+						durationSeconds: duration.seconds,
+						durationMinutes: duration.minutes,
 					});
 				} else {
 					sendEvent(`${options.eventPrefix} errored`, {
 						...options.props,
 						...additionalProperties,
-						durationMs,
+						durationMs: duration.ms,
+						durationSeconds: duration.seconds,
+						durationMinutes: duration.minutes,
 						error: {
 							message: e instanceof Error ? e.message : undefined,
 							stack: e instanceof Error ? e.stack : undefined,

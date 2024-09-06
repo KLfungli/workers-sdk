@@ -15,7 +15,7 @@ const run = async () => {
 		mainFields: ["module", "main"],
 		format: "cjs",
 		define: {
-			SPARROW_SOURCE_KEY: `"${process.env.SPARROW_SOURCE_KEY ?? "__SPARROW_SOURCE_KEY__"}"`,
+			SPARROW_SOURCE_KEY: `"${process.env.SPARROW_SOURCE_KEY ?? ""}"`,
 		},
 	};
 
