@@ -81,7 +81,7 @@ export const main = async (argv: string[]) => {
 	} else {
 		await reporter.collectAsyncMetrics({
 			eventPrefix: "c3 session",
-			startedProps: {
+			props: {
 				args,
 			},
 			promise: () => runCli(args),

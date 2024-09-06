@@ -2,6 +2,7 @@ import { brandColor, dim } from "@cloudflare/cli/colors";
 import { inputPrompt, spinner } from "@cloudflare/cli/interactive";
 import { runCommand } from "helpers/command";
 import { detectPackageManager } from "helpers/packageManagers";
+import { reporter } from "../metrics";
 import type { C3Context } from "types";
 
 export const chooseAccount = async (ctx: C3Context) => {
@@ -53,6 +54,9 @@ export const wranglerLogin = async () => {
 	s.start(`Logging into Cloudflare ${dim("checking authentication status")}`);
 	const alreadyLoggedIn = await isLoggedIn();
 	s.stop(brandColor(alreadyLoggedIn ? "logged in" : "not logged in"));
+
+	reporter.setEventProperty("alreadyLoggedIn", alreadyLoggedIn);
+
 	if (alreadyLoggedIn) {
 		return true;
 	}
@@ -68,6 +72,8 @@ export const wranglerLogin = async () => {
 
 	const verb = success ? "allowed" : "denied";
 	s.stop(`${brandColor(verb)} ${dim("via `wrangler login`")}`);
+
+	reporter.setEventProperty("newLoginSuccessful", success);
 
 	return success;
 };

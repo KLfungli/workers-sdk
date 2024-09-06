@@ -136,7 +136,7 @@ export function createReporter() {
 		Result,
 	>(options: {
 		eventPrefix: Prefix;
-		startedProps: EventProperties<`${Prefix} started`>;
+		props: EventProperties<`${Prefix} started`>;
 		disableTelemetry?: boolean;
 		promise: () => Promise<Result>;
 	}): Promise<Result> {
@@ -154,7 +154,7 @@ export function createReporter() {
 
 		try {
 			if (!options.disableTelemetry) {
-				sendEvent(`${options.eventPrefix} started`, options.startedProps);
+				sendEvent(`${options.eventPrefix} started`, options.props);
 			}
 
 			// Attach the SIGINT and SIGTERM event listeners to handle cancellation
@@ -175,10 +175,14 @@ export function createReporter() {
 			]);
 
 			if (!options.disableTelemetry) {
+				const durationMs = Date.now() - startTime;
+
 				sendEvent(`${options.eventPrefix} completed`, {
-					...options.startedProps,
+					...options.props,
 					...additionalProperties,
-					durationMs: Date.now() - startTime,
+					durationMs,
+					durationSeconds: durationMs / 1000,
+					durationMinutes: durationMs / 1000 / 60,
 				});
 			}
 
@@ -189,13 +193,13 @@ export function createReporter() {
 
 				if (e instanceof CancelError) {
 					sendEvent(`${options.eventPrefix} cancelled`, {
-						...options.startedProps,
+						...options.props,
 						...additionalProperties,
 						durationMs,
 					});
 				} else {
 					sendEvent(`${options.eventPrefix} errored`, {
-						...options.startedProps,
+						...options.props,
 						...additionalProperties,
 						durationMs,
 						error: {

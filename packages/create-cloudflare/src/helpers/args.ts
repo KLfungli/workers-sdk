@@ -386,7 +386,7 @@ export const processArgument = async <Key extends keyof C3Args>(
 ) => {
 	return await reporter.collectAsyncMetrics({
 		eventPrefix: "c3 prompt",
-		startedProps: {
+		props: {
 			args,
 			key,
 			promptConfig,

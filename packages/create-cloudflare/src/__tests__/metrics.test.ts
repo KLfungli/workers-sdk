@@ -46,7 +46,7 @@ describe("createReporter", () => {
 		const reporter = createReporter();
 		const operation = reporter.collectAsyncMetrics({
 			eventPrefix: "c3 session",
-			startedProps: {
+			props: {
 				args: {
 					projectName: "app",
 				},
@@ -105,7 +105,7 @@ describe("createReporter", () => {
 		const reporter = createReporter();
 		const operation = reporter.collectAsyncMetrics({
 			eventPrefix: "c3 session",
-			startedProps: {
+			props: {
 				args: {
 					projectName: "app",
 				},
@@ -126,7 +126,7 @@ describe("createReporter", () => {
 		const reporter = createReporter();
 		const operation = reporter.collectAsyncMetrics({
 			eventPrefix: "c3 session",
-			startedProps: {
+			props: {
 				args: {
 					projectName: "app",
 				},
@@ -182,7 +182,7 @@ describe("createReporter", () => {
 		const reporter = createReporter();
 		const process = reporter.collectAsyncMetrics({
 			eventPrefix: "c3 session",
-			startedProps: {
+			props: {
 				args: { projectName: "app" },
 			},
 			promise: () => deferred.promise,
@@ -241,7 +241,7 @@ describe("createReporter", () => {
 
 		const run = reporter.collectAsyncMetrics({
 			eventPrefix: "c3 session",
-			startedProps: {
+			props: {
 				args: {
 					projectName: "app",
 				},
@@ -297,7 +297,7 @@ describe("createReporter", () => {
 		const reporter = createReporter();
 		const run = reporter.collectAsyncMetrics({
 			eventPrefix: "c3 session",
-			startedProps: {
+			props: {
 				args: {
 					projectName: "app",
 				},
