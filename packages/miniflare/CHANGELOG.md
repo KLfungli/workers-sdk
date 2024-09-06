@@ -1,5 +1,11 @@
 # miniflare
 
+## 3.20240821.2
+
+### Patch Changes
+
+- [#6627](https://github.com/cloudflare/workers-sdk/pull/6627) [`5936282`](https://github.com/cloudflare/workers-sdk/commit/5936282bfbda848b465396a70f6334988d1a57a0) Thanks [@GregBrimble](https://github.com/GregBrimble)! - fix: Fixes max asset count error message to properly report count of assets
+
 ## 3.20240821.1
 
 ### Patch Changes
