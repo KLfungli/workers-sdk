@@ -1515,7 +1515,7 @@ function normalizeAndValidateEnvironment(
 		),
 	};
 
-	warnIfDurableObjectsHaveNoMigrations(
+	validateDurableObjectBindingsAndMigrations(
 		diagnostics,
 		environment.durable_objects,
 		environment.migrations
@@ -3222,31 +3222,83 @@ const validateMigrations: ValidatorFn = (diagnostics, field, value) => {
 	return valid;
 };
 
-function warnIfDurableObjectsHaveNoMigrations(
+function assembleMigrationsState(
+	diagnostics: Diagnostics,
+	migrations: Config["migrations"]
+) {
+	const migrationsState = new Map<string, boolean>();
+	migrations.forEach((migration) => {
+		migration.deleted_classes?.forEach((deleted_class) => {
+			if (!migrationsState.delete(deleted_class)) {
+				diagnostics.errors.push(
+					`Cannot apply deleted_classes migration to non-existant class ${deleted_class}`
+				);
+			}
+		});
+
+		migration.renamed_classes?.forEach(({ from, to }) => {
+			const useSQLite = migrationsState.get(from);
+			if (useSQLite === undefined) {
+				diagnostics.errors.push(
+					`Cannot apply renamed_classes migration to non-existant class ${from}`
+				);
+			} else {
+				migrationsState.delete(from);
+				migrationsState.set(to, useSQLite);
+			}
+		});
+
+		migration.new_classes?.forEach((new_class) => {
+			migrationsState.set(new_class, false);
+		});
+
+		migration.new_sqlite_classes?.forEach((new_class) => {
+			if (migrationsState.has(new_class)) {
+				diagnostics.errors.push(
+					`Cannot apply new_sqlite_classes migration to existing class ${new_class}`
+				);
+			} else {
+				migrationsState.set(new_class, true);
+			}
+		});
+	});
+
+	return migrationsState;
+}
+
+function validateDurableObjectBindingsAndMigrations(
 	diagnostics: Diagnostics,
 	durableObjects: Config["durable_objects"],
 	migrations: Config["migrations"]
 ) {
+	// This function ensures that durable object bindings and migrations match
+	// in addition to the syntax checking performed by validateMigrations and
+	// validateDurableObjectBinding.
 	if (
-		Array.isArray(durableObjects.bindings) &&
-		durableObjects.bindings.length > 0
+		!Array.isArray(durableObjects.bindings) ||
+		(Array.isArray(durableObjects.bindings) &&
+			durableObjects.bindings.length === 0)
 	) {
-		// intrinsic [durable_objects] implies [migrations]
-		const exportedDurableObjects = (durableObjects.bindings || []).filter(
-			(binding) => !binding.script_name
-		);
-		if (exportedDurableObjects.length > 0 && migrations.length === 0) {
-			if (
-				!exportedDurableObjects.some(
-					(exportedDurableObject) =>
-						typeof exportedDurableObject.class_name !== "string"
-				)
-			) {
-				const durableObjectClassnames = exportedDurableObjects.map(
-					(durable) => durable.class_name
-				);
+		return;
+	}
 
-				diagnostics.warnings.push(dedent`
+	const exportedDurableObjects = (durableObjects.bindings || []).filter(
+		(binding) => !binding.script_name
+	);
+
+	if (
+		!exportedDurableObjects.some(
+			(exportedDurableObject) =>
+				typeof exportedDurableObject.class_name !== "string"
+		)
+	) {
+		const durableObjectClassnames = exportedDurableObjects.map(
+			(durable) => durable.class_name
+		);
+
+		// If migrations are completely missing give the user some more help
+		if (exportedDurableObjects.length > 0 && migrations.length === 0) {
+			diagnostics.errors.push(dedent`
 				In wrangler.toml, you have configured [durable_objects] exported by this Worker (${durableObjectClassnames.join(", ")}), but no [migrations] for them. This may not work as expected until you add a [migrations] section to your wrangler.toml. Add this configuration to your wrangler.toml:
 
 				  \`\`\`
@@ -3256,7 +3308,21 @@ function warnIfDurableObjectsHaveNoMigrations(
 				  \`\`\`
 
 				Refer to https://developers.cloudflare.com/durable-objects/reference/durable-objects-migrations/ for more details.`);
-			}
 		}
+
+		const migrationState = new Set(
+			assembleMigrationsState(diagnostics, migrations).keys()
+		);
+
+		// Require all durable object bindings to have a migration, but not the
+		// converse. This is probably a misconfiguration, but it has been
+		// previously allowed.
+		durableObjectClassnames.forEach((className) => {
+			if (!migrationState.has(className)) {
+				diagnostics.errors.push(
+					`No valid migrations for Durable Objects class (${className})`
+				);
+			}
+		});
 	}
 }
