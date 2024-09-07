@@ -62,18 +62,19 @@ describe("getPlatformProxy()", () => {
 	});
 
 	describe("Hyperdrive", () => {
-		let root: string;
 		let port = 5432;
 		let server: nodeNet.Server;
 
 		beforeEach(async () => {
 			server = nodeNet.createServer().listen();
+		});
 
+		it("can connect to a TCP socket via the hyperdrive connect method", async () => {
 			if (server.address() && typeof server.address() !== "string") {
 				port = (server.address() as nodeNet.AddressInfo).port;
 			}
 
-			root = makeRoot();
+			const root = makeRoot();
 
 			await seed(root, {
 				"wrangler.toml": dedent`
@@ -104,9 +105,7 @@ describe("getPlatformProxy()", () => {
 						}
 						`,
 			});
-		});
 
-		it("can connect to a TCP socket via the hyperdrive connect method", async () => {
 			const socketDataMsgPromise = new Promise<string>((resolve, _) => {
 				server.on("connection", (sock) => {
 					sock.on("data", (data) => {
