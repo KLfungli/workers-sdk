@@ -542,7 +542,8 @@ export const validateAdditionalProperties = (
 	diagnostics: Diagnostics,
 	fieldPath: string,
 	restProps: Iterable<string>,
-	knownProps: Iterable<string>
+	knownProps: Iterable<string>,
+	errorWithAdditionalProperties: boolean = false
 ): boolean => {
 	const restPropSet = new Set(restProps);
 	for (const knownProp of knownProps) {
@@ -550,9 +551,15 @@ export const validateAdditionalProperties = (
 	}
 	if (restPropSet.size > 0) {
 		const fields = Array.from(restPropSet.keys()).map((field) => `"${field}"`);
-		diagnostics.warnings.push(
-			`Unexpected fields found in ${fieldPath} field: ${fields}`
-		);
+		if (errorWithAdditionalProperties) {
+			diagnostics.errors.push(
+				`Unexpected fields found in ${fieldPath} field: ${fields}`
+			);
+		} else {
+			diagnostics.warnings.push(
+				`Unexpected fields found in ${fieldPath} field: ${fields}`
+			);
+		}
 		return false;
 	}
 	return true;
